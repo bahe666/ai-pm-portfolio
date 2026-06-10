@@ -15,13 +15,17 @@ describe("EventPayloadSchema", () => {
   });
 
   it("rejects browser environment fields that are outside first-version scope", () => {
-    expect(() =>
-      EventPayloadSchema.parse({
-        eventType: "page_view",
-        path: "/",
-        metadata: { browser: "Chrome" }
-      })
-    ).toThrow();
+    for (const blockedKey of ["browser", "os", "language", "screenWidth", "screenHeight"]) {
+      const metadataValue = blockedKey === "screenWidth" || blockedKey === "screenHeight" ? 1440 : "blocked";
+
+      expect(() =>
+        EventPayloadSchema.parse({
+          eventType: "page_view",
+          path: "/",
+          metadata: { [blockedKey]: metadataValue }
+        })
+      ).toThrow();
+    }
   });
 });
 
@@ -39,5 +43,18 @@ describe("normalizeEventPayload", () => {
       metadata: {},
       durationMs: 600_000
     });
+  });
+
+  it("rejects invalid duration numbers before clamping", () => {
+    for (const durationMs of [Infinity, 600_000.5]) {
+      expect(() =>
+        normalizeEventPayload({
+          eventType: "section_dwell",
+          path: "/projects/agent",
+          sectionId: "prd-overview",
+          durationMs
+        })
+      ).toThrow();
+    }
   });
 });

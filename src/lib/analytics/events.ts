@@ -1,20 +1,8 @@
 import { z } from "zod";
 
-export const EventTypeSchema = z.enum([
-  "page_view",
-  "session_start",
-  "session_end",
-  "project_impression",
-  "project_expand",
-  "project_detail_view",
-  "prd_summary_expand",
-  "prd_full_view",
-  "prd_section_view",
-  "section_dwell",
-  "demo_click",
-  "external_link_click",
-  "resume_snapshot_view"
-]);
+import { EVENT_TYPES } from "../types";
+
+export const EventTypeSchema = z.enum(EVENT_TYPES);
 
 const MetadataSchema = z
   .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
@@ -53,6 +41,10 @@ export function normalizeEventPayload(input: unknown): EventPayload {
 
 function clampDuration(input: unknown): unknown {
   if (!isRecord(input) || typeof input.durationMs !== "number") {
+    return input;
+  }
+
+  if (!Number.isFinite(input.durationMs) || !Number.isInteger(input.durationMs) || input.durationMs < 0) {
     return input;
   }
 

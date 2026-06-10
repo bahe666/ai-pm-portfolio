@@ -47,17 +47,20 @@ export type Campaign = {
   updatedAt: string;
 };
 
-export type EventType =
-  | "page_view"
-  | "session_start"
-  | "session_end"
-  | "project_impression"
-  | "project_expand"
-  | "project_detail_view"
-  | "prd_summary_expand"
-  | "prd_full_view"
-  | "prd_section_view"
-  | "section_dwell"
-  | "demo_click"
-  | "external_link_click"
-  | "resume_snapshot_view";
+export const EVENT_TYPES = [
+  "page_view",
+  "session_start",
+  "session_end",
+  "project_impression",
+  "project_expand",
+  "project_detail_view",
+  "prd_summary_expand",
+  "prd_full_view",
+  "prd_section_view",
+  "section_dwell",
+  "demo_click",
+  "external_link_click",
+  "resume_snapshot_view"
+] as const;
+
+export type EventType = (typeof EVENT_TYPES)[number];
