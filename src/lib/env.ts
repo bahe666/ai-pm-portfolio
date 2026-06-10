@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+const EmailSchema = z.string().email();
+const AdminEmailsSchema = z.string().min(3).refine(
+  (value) =>
+    value
+      .split(",")
+      .map((email) => email.trim())
+      .every((email) => EmailSchema.safeParse(email).success),
+  {
+    message: "ADMIN_EMAILS must be a comma-separated list of valid email addresses"
+  }
+);
+
 const PublicEnvSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
@@ -8,7 +20,7 @@ const PublicEnvSchema = z.object({
 
 const ServerEnvSchema = PublicEnvSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  ADMIN_EMAILS: z.string().min(3)
+  ADMIN_EMAILS: AdminEmailsSchema
 });
 
 export function getPublicEnv() {

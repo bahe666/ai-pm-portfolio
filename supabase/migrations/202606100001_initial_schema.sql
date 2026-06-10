@@ -56,7 +56,7 @@ create table if not exists public.visitors (
 
 create table if not exists public.sessions (
   id uuid primary key default gen_random_uuid(),
-  visitor_id uuid references public.visitors(id) on delete cascade,
+  visitor_id uuid not null references public.visitors(id) on delete cascade,
   campaign_id uuid references public.campaigns(id) on delete set null,
   referrer text,
   ip_address inet,
@@ -70,8 +70,8 @@ create table if not exists public.sessions (
 
 create table if not exists public.events (
   id uuid primary key default gen_random_uuid(),
-  session_id uuid references public.sessions(id) on delete cascade,
-  visitor_id uuid references public.visitors(id) on delete cascade,
+  session_id uuid not null references public.sessions(id) on delete cascade,
+  visitor_id uuid not null references public.visitors(id) on delete cascade,
   campaign_id uuid references public.campaigns(id) on delete set null,
   event_type text not null,
   project_id uuid references public.projects(id) on delete set null,
@@ -85,11 +85,14 @@ create table if not exists public.events (
 );
 
 create index if not exists idx_projects_public_sort on public.projects(status, is_featured, sort_order);
+create index if not exists idx_projects_published_sort on public.projects(sort_order) where status = 'published';
 create index if not exists idx_campaigns_slug on public.campaigns(slug);
 create index if not exists idx_sessions_campaign_started on public.sessions(campaign_id, started_at desc);
+create index if not exists idx_sessions_started_at on public.sessions(started_at desc);
 create index if not exists idx_events_session_time on public.events(session_id, occurred_at);
 create index if not exists idx_events_project_type on public.events(project_id, event_type);
 create index if not exists idx_events_campaign_type on public.events(campaign_id, event_type);
+create index if not exists idx_events_occurred_at on public.events(occurred_at desc);
 
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
@@ -97,6 +100,18 @@ alter table public.campaigns enable row level security;
 alter table public.visitors enable row level security;
 alter table public.sessions enable row level security;
 alter table public.events enable row level security;
+
+grant usage on schema public to anon, authenticated, service_role;
+grant select on table public.profiles to anon, authenticated;
+grant select on table public.projects to anon, authenticated;
+grant select, insert, update, delete on table
+  public.profiles,
+  public.projects,
+  public.campaigns,
+  public.visitors,
+  public.sessions,
+  public.events
+to service_role;
 
 drop policy if exists "Profiles are publicly readable" on public.profiles;
 create policy "Profiles are publicly readable"
@@ -118,4 +133,7 @@ drop policy if exists "Project covers are publicly readable" on storage.objects;
 create policy "Project covers are publicly readable"
 on storage.objects for select
 to anon, authenticated
-using (bucket_id = 'project-covers');
+using (
+  bucket_id = 'project-covers'
+  and storage.allow_only_operation('storage.object.get_public')
+);
