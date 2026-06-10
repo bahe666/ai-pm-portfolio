@@ -1,0 +1,31 @@
+:root {
+  --paper: #f7f2e8;
+  --paper-2: #efe5d3;
+  --ink: #17120d;
+  --muted: #6c5a48;
+  --line: #241a12;
+  --accent: #c45532;
+  --gold: #d6b36a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-serif, Georgia, "Times New Roman", "Songti SC", serif;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
