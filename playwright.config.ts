@@ -1,16 +1,18 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const e2eBaseUrl = "http://127.0.0.1:3100";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
   expect: { timeout: 5_000 },
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: e2eBaseUrl,
     trace: "on-first-retry"
   },
   webServer: {
-    command: "npm run dev",
-    url: "http://127.0.0.1:3000",
+    command: "npm run dev -- --hostname 127.0.0.1 --port 3100",
+    url: e2eBaseUrl,
     reuseExistingServer: !process.env.CI
   },
   projects: [
