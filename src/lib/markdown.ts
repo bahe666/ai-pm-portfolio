@@ -1,23 +1,50 @@
+import GithubSlugger from "github-slugger";
+
 export type MarkdownHeading = {
   depth: 2 | 3;
   text: string;
   id: string;
 };
 
+function stripInlineMarkdown(text: string) {
+  return text
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/<\/?[^>]+>/g, "")
+    .replace(/[*_`~]/g, "")
+    .trim();
+}
+
 export function headingId(text: string) {
-  return text.trim().replace(/\s+/g, "-").toLowerCase();
+  const slugger = new GithubSlugger();
+  return slugger.slug(stripInlineMarkdown(text));
 }
 
 export function extractMarkdownHeadings(markdown: string): MarkdownHeading[] {
-  return markdown
-    .split("\n")
-    .map((line) => line.match(/^(#{2,3})\s+(.+)$/))
-    .filter((match): match is RegExpMatchArray => Boolean(match))
-    .map((match) => ({
+  const slugger = new GithubSlugger();
+  const headings: MarkdownHeading[] = [];
+  let inFence = false;
+
+  for (const line of markdown.split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+
+    if (inFence) continue;
+
+    const match = line.match(/^(#{2,3})\s+(.+)$/);
+    if (!match) continue;
+
+    const text = stripInlineMarkdown(match[2]);
+    headings.push({
       depth: match[1].length as 2 | 3,
-      text: match[2].trim(),
-      id: headingId(match[2])
-    }));
+      text,
+      id: slugger.slug(text)
+    });
+  }
+
+  return headings;
 }
 
 export function summarizeMarkdown(markdown: string, maxLength = 160) {
@@ -31,7 +58,7 @@ export function summarizeMarkdown(markdown: string, maxLength = 160) {
     .replace(/\s+/g, " ")
     .trim();
 
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length <= maxLength) return text;
-  return `${words.slice(0, maxLength).join(" ").trim()}...`;
+  const characters = Array.from(text);
+  if (characters.length <= Math.max(maxLength, 16)) return text;
+  return `${characters.slice(0, maxLength).join("").trim()}...`;
 }
