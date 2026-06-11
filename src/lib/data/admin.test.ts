@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CampaignInputSchema, ProjectInputSchema, uploadProjectCover } from "./admin";
+import { CampaignInputSchema, ProfileInputSchema, ProjectInputSchema, uploadProjectCover } from "./admin";
 import { parseAdminProjectFormData } from "./admin-project-input";
 
 const supabaseMocks = vi.hoisted(() => {
@@ -237,6 +237,43 @@ describe("CampaignInputSchema", () => {
         role: "AI PM Intern",
         tags: [],
         slug: "Example AI PM"
+      })
+    ).toThrow();
+  });
+});
+
+describe("ProfileInputSchema", () => {
+  it("accepts the editable public profile fields", () => {
+    const profile = ProfileInputSchema.parse({
+      displayName: "你的姓名",
+      title: "AI 产品经理实习生候选人",
+      headline: "用 Demo 讲清楚产品判断。",
+      intro: "整理 AI 产品原型、PRD 和项目思考。",
+      contact: {
+        email: "you@example.com",
+        website: "https://example.com"
+      },
+      resumeSnapshot: ["参与团队工作流 AI 化转型", "沉淀 PRD 和原型 Demo"]
+    });
+
+    expect(profile).toMatchObject({
+      contact: {
+        email: "you@example.com",
+        website: "https://example.com"
+      },
+      resumeSnapshot: ["参与团队工作流 AI 化转型", "沉淀 PRD 和原型 Demo"]
+    });
+  });
+
+  it("rejects empty resume snapshot bullets", () => {
+    expect(() =>
+      ProfileInputSchema.parse({
+        displayName: "你的姓名",
+        title: "AI 产品经理实习生候选人",
+        headline: "用 Demo 讲清楚产品判断。",
+        intro: "整理 AI 产品原型、PRD 和项目思考。",
+        contact: {},
+        resumeSnapshot: [""]
       })
     ).toThrow();
   });

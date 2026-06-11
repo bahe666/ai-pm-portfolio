@@ -1,10 +1,11 @@
 import { z } from "zod";
-import type { Campaign, Project } from "@/lib/types";
+import type { Campaign, Profile, Project } from "@/lib/types";
 
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
 const LOCAL_COVER_PATTERN = /^\/covers\/(?!.*\.\.)[a-zA-Z0-9][a-zA-Z0-9._-]*\.(avif|gif|jpe?g|png|webp)$/;
 const PROJECT_COVERS_BUCKET = "project-covers";
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
+export const ADMIN_PROFILE_ID = "00000000-0000-4000-8000-000000000001";
 const COVER_MIME_EXTENSIONS = {
   "image/avif": ".avif",
   "image/gif": ".gif",
@@ -60,8 +61,18 @@ export const CampaignInputSchema = z.object({
   isActive: z.boolean().default(true)
 });
 
+export const ProfileInputSchema = z.object({
+  displayName: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  headline: z.string().trim().min(1),
+  intro: z.string().trim().min(1),
+  contact: z.record(z.string(), z.string()).default({}),
+  resumeSnapshot: z.array(z.string().trim().min(1)).default([])
+});
+
 export type ProjectInput = z.infer<typeof ProjectInputSchema>;
 export type CampaignInput = z.infer<typeof CampaignInputSchema>;
+export type ProfileInput = z.infer<typeof ProfileInputSchema>;
 
 export class AdminInputError extends Error {
   constructor(message: string) {
@@ -163,6 +174,41 @@ export async function createCampaign(input: CampaignInput): Promise<Campaign> {
 
   if (error || !data) throw error ?? new Error("Campaign insert returned no row");
   return toCampaign(data);
+}
+
+export async function updateProfile(input: ProfileInput): Promise<Profile> {
+  const profile = ProfileInputSchema.parse(input);
+  const supabase = await createAdminClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: profile.displayName,
+      title: profile.title,
+      headline: profile.headline,
+      intro: profile.intro,
+      contact: profile.contact,
+      resume_snapshot: profile.resumeSnapshot,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", ADMIN_PROFILE_ID)
+    .select("*")
+    .single();
+
+  if (error || !data) throw error ?? new Error("Profile update returned no row");
+  return toProfile(data);
+}
+
+function toProfile(row: Record<string, unknown>): Profile {
+  return {
+    id: String(row.id),
+    displayName: String(row.display_name),
+    title: String(row.title),
+    headline: String(row.headline),
+    intro: String(row.intro),
+    contact: (row.contact ?? {}) as Record<string, string>,
+    resumeSnapshot: (row.resume_snapshot ?? []) as string[],
+    updatedAt: String(row.updated_at)
+  };
 }
 
 function toProject(row: Record<string, unknown>): Project {
