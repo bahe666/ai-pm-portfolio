@@ -8,8 +8,8 @@ const navItems = [
   { href: "/admin/analytics", icon: BarChart3, label: "数据驾驶舱" },
   { href: "/admin/campaigns", icon: Link2, label: "投递追踪链接" },
   { href: "/admin/projects", icon: BriefcaseBusiness, label: "项目管理" },
-  { href: "/admin/resume", icon: FileText, label: "经历摘要" },
-  { href: "/admin/export", icon: Download, label: "备份导出" }
+  { href: "/admin/profile", icon: FileText, label: "经历摘要" },
+  { href: "/admin/backups", icon: Download, label: "备份导出" }
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

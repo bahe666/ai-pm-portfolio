@@ -10,21 +10,19 @@ export function isAllowedAdminEmail(email: string | null | undefined, allowList 
 
 export async function requireAdmin() {
   let user: User | null = null;
+  let hasAuthError = false;
 
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.getUser();
 
-    if (error) {
-      redirect("/login");
-    }
-
+    hasAuthError = Boolean(error);
     user = data.user;
   } catch {
-    redirect("/login");
+    hasAuthError = true;
   }
 
-  if (!user || !isAdminUser(user)) {
+  if (hasAuthError || !user || !isAdminUser(user)) {
     redirect("/login");
   }
 

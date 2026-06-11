@@ -818,6 +818,25 @@ select {
   padding: 24px;
 }
 
+.admin-placeholder {
+  max-width: 760px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 24px;
+}
+
+.admin-placeholder h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1.05;
+}
+
+.admin-placeholder p:last-child {
+  margin: 14px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
 @media (max-width: 920px) {
   .public-page,
   .project-detail {
@@ -937,5 +956,9 @@ select {
 
   .admin-main {
     padding: 14px;
+  }
+
+  .admin-placeholder {
+    padding: 18px;
   }
 }
