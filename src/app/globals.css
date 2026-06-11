@@ -601,6 +601,223 @@ select {
   padding: 10px;
 }
 
+.login-page {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(90deg, rgba(47, 95, 115, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(102, 112, 74, 0.08) 1px, transparent 1px),
+    var(--paper);
+  background-size: 32px 32px;
+}
+
+.login-panel {
+  width: min(100%, 440px);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 9px 9px 0 var(--shadow);
+  padding: 28px;
+}
+
+.login-panel h1 {
+  margin: 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  line-height: 1.04;
+}
+
+.login-panel__intro {
+  margin: 14px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.login-status {
+  margin: 18px 0 0;
+  border: 1px solid rgba(36, 26, 18, 0.24);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  padding: 10px 12px;
+}
+
+.login-status--success {
+  background: color-mix(in srgb, var(--olive) 13%, var(--surface));
+  color: color-mix(in srgb, var(--olive) 72%, var(--ink));
+}
+
+.login-status--error {
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
+}
+
+.login-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.login-form label {
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.login-form input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(36, 26, 18, 0.7);
+  border-radius: 0;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  padding: 10px 12px;
+}
+
+.login-form button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--surface);
+  cursor: pointer;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 700;
+  padding: 10px 14px;
+}
+
+.login-form button:hover {
+  background: var(--blue);
+}
+
+.admin-shell {
+  display: grid;
+  min-height: 100svh;
+  grid-template-columns: 260px minmax(0, 1fr);
+  background:
+    linear-gradient(90deg, rgba(47, 95, 115, 0.06) 1px, transparent 1px),
+    var(--paper);
+  background-size: 34px 34px;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  height: 100svh;
+  min-width: 0;
+  flex-direction: column;
+  gap: 22px;
+  border-right: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 88%, var(--paper-2));
+  padding: 18px;
+}
+
+.admin-brand {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-brand > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: var(--ink);
+  color: var(--surface);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.admin-brand strong,
+.admin-brand small,
+.admin-nav__link,
+.admin-public-link {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.admin-brand strong,
+.admin-brand small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-brand strong {
+  font-size: 0.94rem;
+}
+
+.admin-brand small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.admin-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-nav__link,
+.admin-public-link {
+  display: flex;
+  min-height: 38px;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 8px 10px;
+  text-decoration: none;
+}
+
+.admin-nav__link:hover,
+.admin-nav__link[aria-current="page"] {
+  border-color: rgba(36, 26, 18, 0.5);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.admin-nav__link svg,
+.admin-public-link svg {
+  flex: 0 0 auto;
+}
+
+.admin-nav__link span,
+.admin-public-link span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-public-link {
+  margin-top: auto;
+  border-color: rgba(47, 95, 115, 0.38);
+  background: color-mix(in srgb, var(--blue) 8%, var(--surface));
+  color: var(--blue);
+}
+
+.admin-public-link:hover {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 14%, var(--surface));
+}
+
+.admin-main {
+  min-width: 0;
+  padding: 24px;
+}
+
 @media (max-width: 920px) {
   .public-page,
   .project-detail {
@@ -634,6 +851,37 @@ select {
 
   .prd-toc {
     position: static;
+  }
+
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+    height: auto;
+    gap: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .admin-nav {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .admin-nav__link {
+    flex: 0 0 auto;
+  }
+
+  .admin-public-link {
+    width: fit-content;
+    margin-top: 0;
+  }
+
+  .admin-main {
+    padding: 18px;
   }
 }
 
@@ -673,5 +921,21 @@ select {
 
   .action-row .button-link {
     flex: 1 1 150px;
+  }
+
+  .login-page {
+    padding: 16px;
+  }
+
+  .login-panel {
+    padding: 20px;
+  }
+
+  .admin-sidebar {
+    padding: 14px;
+  }
+
+  .admin-main {
+    padding: 14px;
   }
 }
