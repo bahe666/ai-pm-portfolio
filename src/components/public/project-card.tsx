@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ProjectImpression } from "@/components/analytics/project-impression";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { summarizeMarkdown } from "@/lib/markdown";
 import type { Project } from "@/lib/types";
 
@@ -6,7 +7,12 @@ export function ProjectCard({ project }: { project: Project }) {
   const prdSummary = summarizeMarkdown(project.prdMarkdown, 120);
 
   return (
-    <article className="project-card" data-project-id={project.id}>
+    <ProjectImpression
+      className="project-card"
+      projectId={project.id}
+      projectSlug={project.slug}
+      projectTitle={project.title}
+    >
       <div className="project-card__cover" aria-label={`${project.title} 截图预览`}>
         {project.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -49,14 +55,29 @@ export function ProjectCard({ project }: { project: Project }) {
         </dl>
 
         <div className="action-row">
-          <Link className="button-link button-link--primary" href={`/projects/${project.slug}`}>
+          <TrackedLink
+            className="button-link button-link--primary"
+            eventType="project_detail_view"
+            href={`/projects/${project.slug}`}
+            metadata={{ projectSlug: project.slug, projectTitle: project.title }}
+            projectId={project.id}
+          >
             阅读详情
-          </Link>
-          <a className="button-link" href={project.demoUrl} target="_blank" rel="noreferrer">
+          </TrackedLink>
+          <TrackedLink
+            className="button-link"
+            eventType="demo_click"
+            href={project.demoUrl}
+            metadata={{ projectSlug: project.slug, projectTitle: project.title }}
+            projectId={project.id}
+            rel="noreferrer"
+            target="_blank"
+            targetUrl={project.demoUrl}
+          >
             查看 Demo
-          </a>
+          </TrackedLink>
         </div>
       </div>
-    </article>
+    </ProjectImpression>
   );
 }
