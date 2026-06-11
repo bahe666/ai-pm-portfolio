@@ -10,6 +10,7 @@ describe("ProjectCard", () => {
 
     render(<ProjectCard project={project} />);
 
+    expect(screen.getByRole("img", { name: /原型截图|首页预览/ })).toHaveAttribute("src", project.coverImageUrl);
     expect(screen.getByRole("heading", { name: project.title })).toBeInTheDocument();
     expect(screen.getByText(project.summary)).toBeInTheDocument();
     expect(screen.getByText(project.contribution)).toBeInTheDocument();

@@ -278,6 +278,7 @@ select {
 
 .project-card__cover {
   display: grid;
+  aspect-ratio: 16 / 9;
   min-height: 210px;
   overflow: hidden;
   border-bottom: 1px solid var(--line);
@@ -455,9 +456,9 @@ select {
 }
 
 .project-detail__media {
-  min-height: 340px;
   overflow: hidden;
   margin-top: 34px;
+  aspect-ratio: 16 / 9;
   border: 1px solid var(--line);
   background: var(--paper-2);
 }

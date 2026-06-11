@@ -46,7 +46,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <p>{project.contribution}</p>
         </article>
         <article>
-          <h2>AI 使用方式</h2>
+          <h2>AI 工作流说明</h2>
           <p>{project.aiUsage}</p>
         </article>
         <article>

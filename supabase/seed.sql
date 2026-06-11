@@ -18,7 +18,7 @@ on conflict (id) do update set
   updated_at = now();
 
 insert into public.projects (
-  id, title, slug, summary, tags, demo_url, contribution, ai_usage, decisions, reflection, prd_markdown, status, is_featured, sort_order
+  id, title, slug, summary, tags, demo_url, cover_image_url, contribution, ai_usage, decisions, reflection, prd_markdown, status, is_featured, sort_order
 )
 values
 (
@@ -28,6 +28,7 @@ values
   '把产品-研发协作中的重复沟通节点转成可验证的 Agent 流程原型。',
   array['Agent','AI Workflow','PRD'],
   'https://example.vercel.app',
+  '/covers/agent-collaboration-prototype.png',
   '拆解协作流程，搭建原型页面，沉淀 PRD 结构。',
   '使用 AI 辅助流程拆解、交互草稿和前端原型生成。',
   '保留人工确认节点，不把需求判断完全交给 Agent。',
@@ -52,6 +53,7 @@ values
   '把业务流程中的关键状态整理成可演示的 ToB 原型。',
   array['ToB','Workflow','Prototype'],
   'https://example.github.io/workflow-demo',
+  '/covers/tob-workflow-demo.png',
   '梳理流程状态、定义页面信息层级、撰写 PRD。',
   '使用 AI 快速生成交互备选稿，再人工收敛流程。',
   '优先展示高频状态，隐藏低频异常路径。',
@@ -75,6 +77,7 @@ on conflict (id) do update set
   summary = excluded.summary,
   tags = excluded.tags,
   demo_url = excluded.demo_url,
+  cover_image_url = excluded.cover_image_url,
   contribution = excluded.contribution,
   ai_usage = excluded.ai_usage,
   decisions = excluded.decisions,
