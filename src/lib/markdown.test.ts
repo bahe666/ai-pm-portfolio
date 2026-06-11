@@ -20,8 +20,28 @@ describe("extractMarkdownHeadings", () => {
     expect(extractMarkdownHeadings("## **背景**")).toEqual([{ depth: 2, text: "背景", id: "背景" }]);
   });
 
-  it("ignores headings inside fenced code blocks", () => {
-    expect(extractMarkdownHeadings("```md\n## 代码里的标题\n```\n\n## 正文标题")).toEqual([
+  it("preserves underscores in heading text and ids", () => {
+    expect(extractMarkdownHeadings("## user_id")).toEqual([{ depth: 2, text: "user_id", id: "user_id" }]);
+  });
+
+  it("removes ATX closing hashes from heading text", () => {
+    expect(extractMarkdownHeadings("## Title ##")).toEqual([{ depth: 2, text: "Title", id: "title" }]);
+  });
+
+  it("recognizes ATX headings with up to three leading spaces", () => {
+    expect(extractMarkdownHeadings("  ## Leading Space")).toEqual([
+      { depth: 2, text: "Leading Space", id: "leading-space" }
+    ]);
+  });
+
+  it("ignores headings inside backtick fenced code blocks", () => {
+    expect(extractMarkdownHeadings("```md\n## fake\n```\n\n## 正文标题")).toEqual([
+      { depth: 2, text: "正文标题", id: "正文标题" }
+    ]);
+  });
+
+  it("ignores headings inside tilde fenced code blocks", () => {
+    expect(extractMarkdownHeadings("~~~md\n## fake\n~~~\n\n## 正文标题")).toEqual([
       { depth: 2, text: "正文标题", id: "正文标题" }
     ]);
   });
@@ -42,6 +62,6 @@ describe("summarizeMarkdown", () => {
 
 describe("headingId", () => {
   it("uses the same GitHub-style slugging as rendered headings", () => {
-    expect(headingId("**背景**")).toBe("背景");
+    expect(headingId("user_id")).toBe("user_id");
   });
 });

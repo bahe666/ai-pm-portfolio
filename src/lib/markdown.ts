@@ -1,4 +1,7 @@
 import GithubSlugger from "github-slugger";
+import { toString } from "mdast-util-to-string";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 
 export type MarkdownHeading = {
   depth: 2 | 3;
@@ -6,43 +9,38 @@ export type MarkdownHeading = {
   id: string;
 };
 
-function stripInlineMarkdown(text: string) {
-  return text
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/<\/?[^>]+>/g, "")
-    .replace(/[*_`~]/g, "")
-    .trim();
-}
+type MarkdownNode = {
+  type: string;
+  depth?: number;
+  children?: MarkdownNode[];
+};
 
 export function headingId(text: string) {
   const slugger = new GithubSlugger();
-  return slugger.slug(stripInlineMarkdown(text));
+  return slugger.slug(text);
 }
 
 export function extractMarkdownHeadings(markdown: string): MarkdownHeading[] {
   const slugger = new GithubSlugger();
   const headings: MarkdownHeading[] = [];
-  let inFence = false;
+  const tree = unified().use(remarkParse).parse(markdown) as MarkdownNode;
 
-  for (const line of markdown.split("\n")) {
-    if (/^\s*(```|~~~)/.test(line)) {
-      inFence = !inFence;
-      continue;
+  function visit(node: MarkdownNode) {
+    if (node.type === "heading" && (node.depth === 2 || node.depth === 3)) {
+      const text = toString(node).trim();
+      headings.push({
+        depth: node.depth,
+        text,
+        id: slugger.slug(text)
+      });
     }
 
-    if (inFence) continue;
-
-    const match = line.match(/^(#{2,3})\s+(.+)$/);
-    if (!match) continue;
-
-    const text = stripInlineMarkdown(match[2]);
-    headings.push({
-      depth: match[1].length as 2 | 3,
-      text,
-      id: slugger.slug(text)
-    });
+    for (const child of node.children ?? []) {
+      visit(child);
+    }
   }
+
+  visit(tree);
 
   return headings;
 }
