@@ -57,4 +57,22 @@ describe("normalizeEventPayload", () => {
       ).toThrow();
     }
   });
+
+  it("limits metadata size and string length", () => {
+    expect(() =>
+      normalizeEventPayload({
+        eventType: "page_view",
+        path: "/",
+        metadata: Object.fromEntries(Array.from({ length: 21 }, (_, index) => [`key${index}`, index]))
+      })
+    ).toThrow();
+
+    expect(() =>
+      normalizeEventPayload({
+        eventType: "page_view",
+        path: "/",
+        metadata: { note: "x".repeat(501) }
+      })
+    ).toThrow();
+  });
 });

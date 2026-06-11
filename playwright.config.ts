@@ -12,6 +12,10 @@ export default defineConfig({
   },
   webServer: {
     command: "npm run dev -- --hostname 127.0.0.1 --port 3100",
+    env: {
+      ...process.env,
+      PORTFOLIO_USE_FIXTURES: "true"
+    },
     url: e2eBaseUrl,
     reuseExistingServer: !process.env.CI
   },

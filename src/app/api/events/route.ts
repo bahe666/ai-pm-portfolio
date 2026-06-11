@@ -3,8 +3,8 @@ import { z } from "zod";
 import { normalizeEventPayload, type EventPayload } from "@/lib/analytics/events";
 import {
   CAMPAIGN_COOKIE_NAME,
-  createAnonymousId,
-  createSessionId,
+  resolveAnonymousId,
+  resolveSessionId,
   SESSION_COOKIE_NAME,
   VISITOR_COOKIE_NAME
 } from "@/lib/analytics/session";
@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid event payload" }, { status: 400 });
   }
 
-  const anonymousId = request.cookies.get(VISITOR_COOKIE_NAME)?.value || createAnonymousId();
-  const sessionId = request.cookies.get(SESSION_COOKIE_NAME)?.value || createSessionId();
+  const anonymousId = resolveAnonymousId(request.cookies.get(VISITOR_COOKIE_NAME)?.value);
+  const sessionId = resolveSessionId(request.cookies.get(SESSION_COOKIE_NAME)?.value);
   const campaignSlug = request.cookies.get(CAMPAIGN_COOKIE_NAME)?.value ?? null;
   const attribution = getRequestAttribution(request, campaignSlug);
   const response = NextResponse.json({ ok: true });
@@ -93,6 +93,10 @@ async function readJson(request: NextRequest): Promise<{ ok: true; value: unknow
 
 function parseEvents(input: unknown): { ok: true; value: EventPayload[] } | { ok: false } {
   try {
+    if (isRecord(input) && "events" in input && !Array.isArray(input.events)) {
+      return { ok: false };
+    }
+
     const rawEvents = isRecord(input) && Array.isArray(input.events) ? input.events : [input];
     if (rawEvents.length === 0 || rawEvents.length > MAX_EVENTS_PER_REQUEST) {
       return { ok: false };

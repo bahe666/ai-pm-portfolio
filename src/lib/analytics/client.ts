@@ -8,6 +8,7 @@ type TrackEventInput = Omit<EventPayload, "path" | "metadata"> & {
 };
 
 const MAX_BATCH_SIZE = 10;
+const MAX_QUEUE_SIZE = 50;
 const FLUSH_DELAY_MS = 800;
 
 const queue: EventPayload[] = [];
@@ -26,6 +27,7 @@ export function trackEvent(event: TrackEventInput): void {
     path: event.path ?? getCurrentPath(),
     metadata: event.metadata ?? {}
   });
+  trimQueue();
 
   if (queue.length >= MAX_BATCH_SIZE) {
     void flushEvents();
@@ -48,18 +50,34 @@ export async function flushEvents(): Promise<void> {
   const events = queue.splice(0, MAX_BATCH_SIZE);
 
   try {
-    await fetch("/api/events", {
+    const response = await fetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ events }),
       keepalive: true
     });
+
+    if (!response.ok) {
+      throw new Error(`Analytics request failed with ${response.status}`);
+    }
   } catch (error) {
+    requeueEvents(events);
     console.error("Failed to flush analytics events", error);
   }
 
   if (queue.length > 0) {
     scheduleFlush();
+  }
+}
+
+function requeueEvents(events: EventPayload[]): void {
+  queue.unshift(...events);
+  trimQueue();
+}
+
+function trimQueue(): void {
+  if (queue.length > MAX_QUEUE_SIZE) {
+    queue.splice(0, queue.length - MAX_QUEUE_SIZE);
   }
 }
 

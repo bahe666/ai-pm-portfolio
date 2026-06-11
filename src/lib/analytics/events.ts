@@ -4,9 +4,21 @@ import { EVENT_TYPES } from "../types";
 
 export const EventTypeSchema = z.enum(EVENT_TYPES);
 
+const MetadataValueSchema = z.union([z.string().max(500), z.number(), z.boolean()]);
+
 const MetadataSchema = z
-  .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+  .record(z.string().min(1).max(80), MetadataValueSchema)
   .superRefine((value, ctx) => {
+    if (Object.keys(value).length > 20) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.too_big,
+        maximum: 20,
+        origin: "object",
+        inclusive: true,
+        message: "metadata may contain at most 20 keys"
+      });
+    }
+
     for (const blockedKey of ["browser", "os", "language", "screenWidth", "screenHeight"]) {
       if (blockedKey in value) {
         ctx.addIssue({

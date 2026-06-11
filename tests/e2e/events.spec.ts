@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const blockedMetadataKeys = ["browser", "os", "language", "screenWidth", "screenHeight"];
+const blockedPayloadKeys = ["browser", "os", "language", "screenWidth", "screenHeight"];
 
 test("campaign vanity route redirects home and sets campaign cookie", async ({ context, page }) => {
   await page.goto("/v/sample-ai-pm");
@@ -12,7 +12,7 @@ test("campaign vanity route redirects home and sets campaign cookie", async ({ c
   expect(cookies.find((cookie) => cookie.name === "portfolio_campaign")?.value).toBe("sample-ai-pm");
 });
 
-test("homepage sends page view and project click events without low-value browser metadata", async ({ page }) => {
+test("homepage sends page view, impressions and project click events without low-value browser payload", async ({ page }) => {
   const requests: unknown[] = [];
 
   await page.route("**/api/events", async (route) => {
@@ -35,6 +35,12 @@ test("homepage sends page view and project click events without low-value browse
     .poll(() => getCapturedEvents(requests).some((event) => event.eventType === "page_view"))
     .toBe(true);
 
+  await page.locator(".project-card").first().scrollIntoViewIfNeeded();
+
+  await expect
+    .poll(() => getCapturedEvents(requests).some((event) => event.eventType === "project_impression"))
+    .toBe(true);
+
   const demoPopupPromise = page.waitForEvent("popup").catch(() => null);
   await page.getByRole("link", { name: "查看 Demo" }).first().click();
   const demoPopup = await demoPopupPromise;
@@ -52,14 +58,17 @@ test("homepage sends page view and project click events without low-value browse
 
   const importantEvents = getCapturedEvents(requests).filter((event) =>
     typeof event.eventType === "string" &&
-    ["page_view", "demo_click", "project_detail_view"].includes(event.eventType)
+    ["page_view", "project_impression", "demo_click", "project_detail_view"].includes(event.eventType)
   );
 
-  expect(importantEvents.length).toBeGreaterThanOrEqual(3);
+  expect(importantEvents.length).toBeGreaterThanOrEqual(4);
 
   for (const event of importantEvents) {
-    for (const key of blockedMetadataKeys) {
+    const serializedEvent = JSON.stringify(event);
+    for (const key of blockedPayloadKeys) {
+      expect(event).not.toHaveProperty(key);
       expect(event.metadata ?? {}).not.toHaveProperty(key);
+      expect(serializedEvent).not.toContain(`"${key}"`);
     }
   }
 });

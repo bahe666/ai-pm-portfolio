@@ -28,6 +28,10 @@ export async function GET(request: NextRequest, { params }: CampaignRouteContext
 }
 
 async function findActiveCampaign(slug: string): Promise<Campaign | null> {
+  if (shouldUseFixtureCampaigns()) {
+    return findFixtureCampaign(slug);
+  }
+
   try {
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase
@@ -39,13 +43,23 @@ async function findActiveCampaign(slug: string): Promise<Campaign | null> {
       .maybeSingle();
 
     if (error) {
-      return findFixtureCampaign(slug);
+      console.error("Failed to load campaign from Supabase", error);
+      return null;
     }
 
     return data ? toCampaign(data) : null;
-  } catch {
-    return findFixtureCampaign(slug);
+  } catch (error) {
+    console.error("Supabase campaign lookup unavailable", error);
+    return null;
   }
+}
+
+function shouldUseFixtureCampaigns(): boolean {
+  return (
+    process.env.PORTFOLIO_USE_FIXTURES === "true" ||
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 }
 
 function findFixtureCampaign(slug: string): Campaign | null {

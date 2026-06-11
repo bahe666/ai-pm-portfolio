@@ -28,6 +28,15 @@ export function ProjectImpression({
     }
 
     if (!("IntersectionObserver" in window)) {
+      hasTrackedRef.current = true;
+      trackEvent({
+        eventType: "project_impression",
+        projectId,
+        metadata: {
+          projectSlug,
+          projectTitle
+        }
+      });
       return;
     }
 
