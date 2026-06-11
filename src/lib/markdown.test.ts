@@ -48,6 +48,16 @@ describe("extractMarkdownHeadings", () => {
     expect(extractMarkdownHeadings("## ~~strike~~")).toEqual([{ depth: 2, text: "strike", id: "strike" }]);
   });
 
+  it("ignores the GFM generated footnotes heading", () => {
+    expect(extractMarkdownHeadings("## Intro\n\nText[^1]\n\n[^1]: Body")).toEqual([
+      { depth: 2, text: "Intro", id: "intro" }
+    ]);
+  });
+
+  it("keeps author-written Footnotes headings", () => {
+    expect(extractMarkdownHeadings("## Footnotes")).toEqual([{ depth: 2, text: "Footnotes", id: "footnotes" }]);
+  });
+
   it("ignores headings inside backtick fenced code blocks", () => {
     expect(extractMarkdownHeadings("```md\n## fake\n```\n\n## 正文标题")).toEqual([
       { depth: 2, text: "正文标题", id: "正文标题" }

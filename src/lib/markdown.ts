@@ -14,6 +14,7 @@ export type MarkdownHeading = {
 type HastNode = {
   type: string;
   tagName?: string;
+  properties?: Record<string, unknown>;
   children?: HastNode[];
 };
 
@@ -28,7 +29,13 @@ export function extractMarkdownHeadings(markdown: string): MarkdownHeading[] {
   const processor = unified().use(remarkParse).use(remarkGfm).use(remarkRehype, { allowDangerousHtml: false });
   const tree = processor.runSync(processor.parse(markdown)) as HastNode;
 
+  function isGfmFootnoteSection(node: HastNode) {
+    return node.type === "element" && node.tagName === "section" && node.properties?.dataFootnotes === true;
+  }
+
   function visit(node: HastNode) {
+    if (isGfmFootnoteSection(node)) return;
+
     if (node.type === "element" && (node.tagName === "h2" || node.tagName === "h3")) {
       const text = hastToString(node as Parameters<typeof hastToString>[0]).trim();
 
