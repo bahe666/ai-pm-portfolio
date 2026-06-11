@@ -1,5 +1,36 @@
-import { describe, expect, it } from "vitest";
-import { CampaignInputSchema, ProjectInputSchema } from "./admin";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CampaignInputSchema, ProjectInputSchema, uploadProjectCover } from "./admin";
+import { parseAdminProjectFormData } from "./admin-project-input";
+
+const supabaseMocks = vi.hoisted(() => {
+  const upload = vi.fn();
+  const getPublicUrl = vi.fn();
+  const from = vi.fn(() => ({
+    getPublicUrl,
+    upload
+  }));
+
+  return {
+    client: {
+      storage: {
+        from
+      }
+    },
+    from,
+    getPublicUrl,
+    upload
+  };
+});
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: () => supabaseMocks.client
+}));
+
+beforeEach(() => {
+  supabaseMocks.from.mockClear();
+  supabaseMocks.getPublicUrl.mockReset();
+  supabaseMocks.upload.mockReset();
+});
 
 describe("ProjectInputSchema", () => {
   it("applies admin project defaults", () => {
@@ -38,6 +69,32 @@ describe("ProjectInputSchema", () => {
     expect(project.coverImageUrl).toBe("/covers/agent-collaboration-prototype.png");
   });
 
+  it("rejects path traversal in a local cover path", () => {
+    expect(() =>
+      ProjectInputSchema.parse({
+        title: "Agent collaboration",
+        slug: "agent-collaboration",
+        summary: "A concise project summary.",
+        tags: [],
+        demoUrl: "https://example.com/demo",
+        coverImageUrl: "/covers/../../secret.png"
+      })
+    ).toThrow();
+  });
+
+  it("rejects local cover subdirectories", () => {
+    expect(() =>
+      ProjectInputSchema.parse({
+        title: "Agent collaboration",
+        slug: "agent-collaboration",
+        summary: "A concise project summary.",
+        tags: [],
+        demoUrl: "https://example.com/demo",
+        coverImageUrl: "/covers/archive/secret.png"
+      })
+    ).toThrow();
+  });
+
   it("accepts a nullable cover image URL", () => {
     const project = ProjectInputSchema.parse({
       title: "Agent collaboration",
@@ -73,6 +130,61 @@ describe("ProjectInputSchema", () => {
         demoUrl: "/demo"
       })
     ).toThrow();
+  });
+});
+
+describe("uploadProjectCover", () => {
+  it("rejects svg uploads", async () => {
+    const file = new File(["<svg />"], "cover.svg", { type: "image/svg+xml" });
+
+    await expect(uploadProjectCover(file)).rejects.toThrow("Project cover must be a raster image");
+    expect(supabaseMocks.upload).not.toHaveBeenCalled();
+  });
+
+  it("uses the MIME-derived extension for png uploads", async () => {
+    const file = new File(["png"], "cover.svg", { type: "image/png" });
+    supabaseMocks.upload.mockResolvedValue({
+      data: { path: "2026-06-11/mock-id.png" },
+      error: null
+    });
+    supabaseMocks.getPublicUrl.mockReturnValue({
+      data: { publicUrl: "https://example.supabase.co/storage/v1/object/public/project-covers/mock-id.png" }
+    });
+
+    await expect(uploadProjectCover(file)).resolves.toContain("mock-id.png");
+
+    const [objectPath, , options] = supabaseMocks.upload.mock.calls[0];
+    expect(objectPath).toMatch(/\.png$/);
+    expect(objectPath).not.toMatch(/\.svg$/);
+    expect(options).toMatchObject({ contentType: "image/png" });
+  });
+});
+
+describe("parseAdminProjectFormData", () => {
+  it("accepts coverFile and checkbox values from multipart forms", async () => {
+    const coverFile = new File(["png"], "cover.png", { type: "image/png" });
+    const upload = vi.fn().mockResolvedValue("https://cdn.example.com/project-cover.png");
+    const formData = new FormData();
+
+    formData.set("title", "Workflow demo");
+    formData.set("slug", "workflow-demo");
+    formData.set("summary", "A concise project summary.");
+    formData.set("tags", "AI,Workflow");
+    formData.set("demoUrl", "https://example.com/demo");
+    formData.set("isFeatured", "on");
+    formData.set("sortOrder", "5");
+    formData.set("coverFile", coverFile);
+
+    const project = await parseAdminProjectFormData(formData, upload);
+
+    expect(project).toMatchObject({
+      analyticsEnabled: true,
+      coverImageUrl: "https://cdn.example.com/project-cover.png",
+      isFeatured: true,
+      sortOrder: 5,
+      tags: ["AI", "Workflow"]
+    });
+    expect(upload).toHaveBeenCalledWith(coverFile);
   });
 });
 

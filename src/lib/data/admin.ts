@@ -2,9 +2,16 @@ import { z } from "zod";
 import type { Campaign, Project } from "@/lib/types";
 
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
-const LOCAL_COVER_PATTERN = /^\/covers\/[a-zA-Z0-9._/-]+\.(avif|gif|jpe?g|png|webp)$/;
+const LOCAL_COVER_PATTERN = /^\/covers\/(?!.*\.\.)[a-zA-Z0-9][a-zA-Z0-9._-]*\.(avif|gif|jpe?g|png|webp)$/;
 const PROJECT_COVERS_BUCKET = "project-covers";
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
+const COVER_MIME_EXTENSIONS = {
+  "image/avif": ".avif",
+  "image/gif": ".gif",
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp"
+} as const;
 
 const NullableStringSchema = z.preprocess(
   (value) => (value === "" || value === undefined ? null : value),
@@ -108,8 +115,9 @@ export async function deleteProject(id: string): Promise<void> {
 export async function uploadProjectCover(file: File): Promise<string | null> {
   if (file.size === 0) return null;
 
-  if (!file.type.startsWith("image/")) {
-    throw new AdminInputError("Project cover must be an image");
+  const extension = getRasterImageExtension(file.type);
+  if (!extension) {
+    throw new AdminInputError("Project cover must be a raster image");
   }
 
   if (file.size > MAX_COVER_BYTES) {
@@ -117,7 +125,6 @@ export async function uploadProjectCover(file: File): Promise<string | null> {
   }
 
   const supabase = await createAdminClient();
-  const extension = getFileExtension(file.name);
   const objectPath = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}${extension}`;
   const { data, error } = await supabase.storage.from(PROJECT_COVERS_BUCKET).upload(
     objectPath,
@@ -237,7 +244,6 @@ function toCampaignRow(campaign: CampaignInput) {
   };
 }
 
-function getFileExtension(filename: string): string {
-  const match = filename.match(/\.[a-zA-Z0-9]+$/);
-  return match?.[0].toLowerCase() ?? "";
+function getRasterImageExtension(mimeType: string): string | null {
+  return COVER_MIME_EXTENSIONS[mimeType as keyof typeof COVER_MIME_EXTENSIONS] ?? null;
 }
