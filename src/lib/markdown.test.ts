@@ -34,6 +34,20 @@ describe("extractMarkdownHeadings", () => {
     ]);
   });
 
+  it("uses visible text from raw HTML inline headings", () => {
+    expect(extractMarkdownHeadings("## <em>raw</em>")).toEqual([{ depth: 2, text: "raw", id: "raw" }]);
+  });
+
+  it("skips headings without visible text", () => {
+    expect(extractMarkdownHeadings("## ![alt text](x.png)\n\n## Visible")).toEqual([
+      { depth: 2, text: "Visible", id: "visible" }
+    ]);
+  });
+
+  it("uses GFM rendered text for strikethrough headings", () => {
+    expect(extractMarkdownHeadings("## ~~strike~~")).toEqual([{ depth: 2, text: "strike", id: "strike" }]);
+  });
+
   it("ignores headings inside backtick fenced code blocks", () => {
     expect(extractMarkdownHeadings("```md\n## fake\n```\n\n## 正文标题")).toEqual([
       { depth: 2, text: "正文标题", id: "正文标题" }

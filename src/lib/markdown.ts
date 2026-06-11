@@ -1,6 +1,8 @@
 import GithubSlugger from "github-slugger";
-import { toString } from "mdast-util-to-string";
+import { toString as hastToString } from "hast-util-to-string";
+import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 
 export type MarkdownHeading = {
@@ -9,10 +11,10 @@ export type MarkdownHeading = {
   id: string;
 };
 
-type MarkdownNode = {
+type HastNode = {
   type: string;
-  depth?: number;
-  children?: MarkdownNode[];
+  tagName?: string;
+  children?: HastNode[];
 };
 
 export function headingId(text: string) {
@@ -23,16 +25,20 @@ export function headingId(text: string) {
 export function extractMarkdownHeadings(markdown: string): MarkdownHeading[] {
   const slugger = new GithubSlugger();
   const headings: MarkdownHeading[] = [];
-  const tree = unified().use(remarkParse).parse(markdown) as MarkdownNode;
+  const processor = unified().use(remarkParse).use(remarkGfm).use(remarkRehype, { allowDangerousHtml: false });
+  const tree = processor.runSync(processor.parse(markdown)) as HastNode;
 
-  function visit(node: MarkdownNode) {
-    if (node.type === "heading" && (node.depth === 2 || node.depth === 3)) {
-      const text = toString(node).trim();
-      headings.push({
-        depth: node.depth,
-        text,
-        id: slugger.slug(text)
-      });
+  function visit(node: HastNode) {
+    if (node.type === "element" && (node.tagName === "h2" || node.tagName === "h3")) {
+      const text = hastToString(node as Parameters<typeof hastToString>[0]).trim();
+
+      if (text) {
+        headings.push({
+          depth: node.tagName === "h2" ? 2 : 3,
+          text,
+          id: slugger.slug(text)
+        });
+      }
     }
 
     for (const child of node.children ?? []) {

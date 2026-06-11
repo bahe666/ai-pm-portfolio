@@ -17,8 +17,8 @@
     "@supabase/supabase-js": "latest",
     "@vercel/functions": "latest",
     "github-slugger": "^2.0.0",
+    "hast-util-to-string": "^3.0.1",
     "lucide-react": "latest",
-    "mdast-util-to-string": "^4.0.0",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
@@ -26,6 +26,7 @@
     "rehype-slug": "latest",
     "remark-gfm": "latest",
     "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
     "unified": "^11.0.5",
     "zod": "latest"
   },
