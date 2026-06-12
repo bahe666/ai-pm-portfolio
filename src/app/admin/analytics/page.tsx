@@ -1,9 +1,10 @@
-export default function AdminAnalyticsPage() {
-  return (
-    <section className="admin-placeholder" aria-labelledby="admin-analytics-title">
-      <p className="eyebrow">Analytics</p>
-      <h1 id="admin-analytics-title">数据驾驶舱</h1>
-      <p>访问数据会在这里汇总展示。</p>
-    </section>
-  );
+import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
+import { getAnalyticsDashboard } from "@/lib/data/analytics";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminAnalyticsPage() {
+  const data = await getAnalyticsDashboard();
+
+  return <AnalyticsDashboard data={data} />;
 }
