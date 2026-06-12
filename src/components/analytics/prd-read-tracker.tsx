@@ -32,6 +32,14 @@ export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle 
     };
 
     if (typeof window.IntersectionObserver !== "function") {
+      if (!hasTrackedFullViewRef.current) {
+        hasTrackedFullViewRef.current = true;
+        trackEvent({
+          eventType: "prd_full_view",
+          projectId,
+          metadata
+        });
+      }
       return;
     }
 

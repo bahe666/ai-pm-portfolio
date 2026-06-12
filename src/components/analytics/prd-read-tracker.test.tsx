@@ -58,7 +58,7 @@ describe("PrdReadTracker", () => {
     vi.useRealTimers();
   });
 
-  it("does not track PRD reading before the PRD enters the viewport", () => {
+  it("falls back to immediate prd_full_view when IntersectionObserver is unavailable", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
 
     const { unmount } = render(
@@ -70,9 +70,16 @@ describe("PrdReadTracker", () => {
       />
     );
 
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith({
+      eventType: "prd_full_view",
+      projectId: "project-1",
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
+
     unmount();
 
-    expect(trackEventMock).not.toHaveBeenCalled();
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
   });
 
   it("tracks full PRD only after the PRD sentinel enters the viewport", () => {

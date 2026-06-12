@@ -49,7 +49,6 @@ export type ProjectInterest = {
   title: string;
   slug: string | null;
   impressions: number;
-  expands: number;
   detailViews: number;
   prdDeepReads: number;
   demoClicks: number;
@@ -135,6 +134,22 @@ const FUNNEL_STEPS: FunnelStep[] = [
   { key: "demo_click", label: "点击 Demo/外链", sessions: 0 }
 ];
 
+export const EMPTY_DASHBOARD: AnalyticsDashboardData = {
+  kpis: {
+    totalSessions: 0,
+    totalVisitors: 0,
+    totalEvents: 0,
+    campaignSessions: 0,
+    demoClicks: 0,
+    projectDetailViews: 0
+  },
+  projectInterest: [],
+  funnel: FUNNEL_STEPS.map((step) => ({ ...step })),
+  campaignSummary: { campaigns: [], tagPreferences: [] },
+  prdSectionInterest: [],
+  recentSessions: []
+};
+
 export function summarizeProjectInterest(events: AnalyticsEvent[], projects: ProjectFact[] = []): ProjectInterest[] {
   const projectFacts = new Map(projects.map((project) => [project.id, project]));
   const summaries = new Map<string, ProjectInterest & { dwellTotalMs: number; dwellCount: number }>();
@@ -145,7 +160,6 @@ export function summarizeProjectInterest(events: AnalyticsEvent[], projects: Pro
     const summary = getProjectInterestSummary(summaries, event.projectId, fact);
 
     if (event.eventType === "project_impression") summary.impressions += 1;
-    if (event.eventType === "project_expand") summary.expands += 1;
     if (event.eventType === "project_detail_view") summary.detailViews += 1;
     if (event.eventType === "prd_full_view" || event.eventType === "prd_section_view") summary.prdDeepReads += 1;
     if (event.eventType === "demo_click" || event.eventType === "external_link_click") summary.demoClicks += 1;
@@ -160,26 +174,43 @@ export function summarizeProjectInterest(events: AnalyticsEvent[], projects: Pro
       ...summary,
       averageDwellSeconds: dwellCount > 0 ? roundSeconds(dwellTotalMs / dwellCount) : 0
     }))
-    .sort((a, b) => b.detailViews - a.detailViews || b.expands - a.expands || b.impressions - a.impressions);
+    .sort(
+      (a, b) =>
+        b.detailViews - a.detailViews ||
+        b.demoClicks - a.demoClicks ||
+        b.prdDeepReads - a.prdDeepReads ||
+        b.impressions - a.impressions
+    );
 }
 
 export function summarizeFunnel(events: AnalyticsEvent[]): FunnelStep[] {
-  return FUNNEL_STEPS.map((step) => {
-    const sessionIds = new Set(
-      events
-        .filter((event) =>
-          step.key === "demo_click"
-            ? event.eventType === "demo_click" || event.eventType === "external_link_click"
-            : event.eventType === step.key
-        )
-        .map((event) => event.sessionId)
-    );
+  const sessionsByStep = new Map<FunnelStep["key"], Set<string>>(
+    FUNNEL_STEPS.map((step) => [step.key, new Set<string>()])
+  );
 
-    return {
-      ...step,
-      sessions: sessionIds.size
-    };
-  });
+  for (const event of events) {
+    const stepKey = funnelStepForEvent(event.eventType);
+    if (!stepKey) continue;
+    sessionsByStep.get(stepKey)!.add(event.sessionId);
+  }
+
+  return FUNNEL_STEPS.map((step) => ({
+    ...step,
+    sessions: sessionsByStep.get(step.key)?.size ?? 0
+  }));
+}
+
+function funnelStepForEvent(eventType: EventType): FunnelStep["key"] | null {
+  if (eventType === "demo_click" || eventType === "external_link_click") return "demo_click";
+  if (
+    eventType === "page_view" ||
+    eventType === "project_impression" ||
+    eventType === "project_detail_view" ||
+    eventType === "prd_full_view"
+  ) {
+    return eventType;
+  }
+  return null;
 }
 
 export function summarizeCampaignPerformance(
@@ -368,7 +399,6 @@ function getProjectInterestSummary(
     title: project?.title ?? projectId,
     slug: project?.slug ?? null,
     impressions: 0,
-    expands: 0,
     detailViews: 0,
     prdDeepReads: 0,
     demoClicks: 0,

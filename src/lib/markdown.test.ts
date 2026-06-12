@@ -64,10 +64,32 @@ describe("extractMarkdownHeadings", () => {
     ]);
   });
 
-  it("ignores headings inside tilde fenced code blocks", () => {
-    expect(extractMarkdownHeadings("~~~md\n## fake\n~~~\n\n## 正文标题")).toEqual([
-      { depth: 2, text: "正文标题", id: "正文标题" }
+  it("slugs emoji-prefixed headings using github-slugger semantics", () => {
+    expect(extractMarkdownHeadings("## 🎯 用户场景 (alpha)")).toEqual([
+      { depth: 2, text: "🎯 用户场景 (alpha)", id: "-用户场景-alpha" }
     ]);
+  });
+
+  it("strips inline code from heading text and ids", () => {
+    expect(extractMarkdownHeadings("## use `getPublishedProjects()`")).toEqual([
+      { depth: 2, text: "use getPublishedProjects()", id: "use-getpublishedprojects" }
+    ]);
+  });
+
+  it("uses link text from inline links in headings", () => {
+    expect(extractMarkdownHeadings("## See [the spec](https://example.com/spec)")).toEqual([
+      { depth: 2, text: "See the spec", id: "see-the-spec" }
+    ]);
+  });
+
+  it("matches headingId() output for the same heading text", () => {
+    const headings = extractMarkdownHeadings(
+      "## 🎯 用户场景 (alpha)\n\n## use `getPublishedProjects()`\n\n## See [the spec](https://example.com)"
+    );
+
+    for (const heading of headings) {
+      expect(heading.id).toBe(headingId(heading.text));
+    }
   });
 });
 

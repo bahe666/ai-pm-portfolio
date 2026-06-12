@@ -2,7 +2,13 @@ import { Activity, BarChart3, Clock3, MousePointerClick, Route, Tags } from "luc
 import type { AnalyticsDashboardData, FunnelStep } from "@/lib/data/analytics";
 import type { EventType } from "@/lib/types";
 
-export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
+export function AnalyticsDashboard({
+  data,
+  errorMessage
+}: {
+  data: AnalyticsDashboardData;
+  errorMessage?: string;
+}) {
   const maxFunnelSessions = Math.max(...data.funnel.map((step) => step.sessions), 1);
 
   return (
@@ -22,6 +28,12 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
           <Metric label="Demo/外链" value={data.kpis.demoClicks} />
         </div>
       </header>
+
+      {errorMessage ? (
+        <p className="analytics-error" role="status">
+          数据暂不可用：{errorMessage}
+        </p>
+      ) : null}
 
       <section className="admin-card" aria-labelledby="project-interest-title">
         <div className="admin-section-heading">
@@ -107,7 +119,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
           <div className="admin-section-heading">
             <div>
               <h2 id="tag-preference-title">JD 标签偏好</h2>
-              <p>由投递链接标签与实际访问事实归并。</p>
+              <p>按 campaign 标签累计，多标签 campaign 会重复计入每个标签。</p>
             </div>
             <Tags aria-hidden="true" size={22} />
           </div>

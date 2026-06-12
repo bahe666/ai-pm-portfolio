@@ -33,7 +33,6 @@ describe("summarizeProjectInterest", () => {
         title: "project-a",
         slug: null,
         impressions: 2,
-        expands: 1,
         detailViews: 1,
         prdDeepReads: 2,
         demoClicks: 2,
@@ -44,13 +43,45 @@ describe("summarizeProjectInterest", () => {
         title: "project-b",
         slug: null,
         impressions: 1,
-        expands: 0,
         detailViews: 0,
         prdDeepReads: 0,
         demoClicks: 0,
         averageDwellSeconds: 4.5
       }
     ]);
+  });
+
+  it("ignores legacy project_expand events without crashing", () => {
+    const events = [
+      event("project_expand", { projectId: "project-a" }),
+      event("project_expand", { projectId: "project-a" }),
+      event("project_detail_view", { projectId: "project-a" })
+    ] satisfies AnalyticsEvent[];
+
+    expect(summarizeProjectInterest(events)).toEqual([
+      {
+        projectId: "project-a",
+        title: "project-a",
+        slug: null,
+        impressions: 0,
+        detailViews: 1,
+        prdDeepReads: 0,
+        demoClicks: 0,
+        averageDwellSeconds: 0
+      }
+    ]);
+  });
+
+  it("sorts by detailViews, then demoClicks, then prdDeepReads, then impressions", () => {
+    const events = [
+      event("project_detail_view", { projectId: "project-a" }),
+      event("demo_click", { projectId: "project-a" }),
+      event("project_detail_view", { projectId: "project-b" }),
+      event("project_detail_view", { projectId: "project-b" }),
+      event("project_impression", { projectId: "project-c" })
+    ] satisfies AnalyticsEvent[];
+
+    expect(summarizeProjectInterest(events).map((p) => p.projectId)).toEqual(["project-b", "project-a", "project-c"]);
   });
 
   it("uses project titles and slugs when provided", () => {
@@ -168,6 +199,20 @@ describe("summarizeRecentSessions", () => {
         targetUrl: null,
         occurredAt: "2026-06-11T10:02:00.000Z"
       }
+    ]);
+  });
+
+  it("returns sessions ordered by startedAt descending", () => {
+    const sessions = [
+      session("session-old", null, "2026-06-11T08:00:00.000Z"),
+      session("session-new", null, "2026-06-11T12:00:00.000Z"),
+      session("session-mid", null, "2026-06-11T10:00:00.000Z")
+    ] satisfies AnalyticsSession[];
+
+    expect(summarizeRecentSessions([], sessions, [], []).map((s) => s.sessionId)).toEqual([
+      "session-new",
+      "session-mid",
+      "session-old"
     ]);
   });
 });
