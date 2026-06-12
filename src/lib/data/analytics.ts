@@ -293,13 +293,16 @@ export function summarizeRecentSessions(
         location: formatLocation(session),
         sourceHint: session.sourceHint,
         paths: Array.from(new Set(sessionEvents.map((event) => event.path))).slice(0, 5),
-        events: sessionEvents.slice(-6).map((event) => ({
-          eventType: event.eventType,
-          projectTitle: event.projectId ? projectFacts.get(event.projectId)?.title ?? event.projectId : null,
-          path: event.path,
-          targetUrl: event.targetUrl,
-          occurredAt: event.occurredAt
-        }))
+        events: sessionEvents
+          .filter((event) => event.eventType !== "project_expand")
+          .slice(-6)
+          .map((event) => ({
+            eventType: event.eventType,
+            projectTitle: event.projectId ? projectFacts.get(event.projectId)?.title ?? event.projectId : null,
+            path: event.path,
+            targetUrl: event.targetUrl,
+            occurredAt: event.occurredAt
+          }))
       };
     });
 }

@@ -3,9 +3,11 @@ import {
   summarizeCampaignPerformance,
   summarizeFunnel,
   summarizeProjectInterest,
+  summarizeRecentSessions,
   type AnalyticsEvent,
   type AnalyticsSession,
-  type CampaignFact
+  type CampaignFact,
+  type ProjectFact
 } from "./analytics";
 
 describe("summarizeProjectInterest", () => {
@@ -137,6 +139,36 @@ describe("summarizeCampaignPerformance", () => {
         { tag: "Growth", sessions: 1, projectDetailViews: 0, demoClicks: 0 }
       ]
     });
+  });
+});
+
+describe("summarizeRecentSessions", () => {
+  it("does not surface legacy project expand events in the displayed session path", () => {
+    const sessions = [session("session-1", null, "2026-06-11T10:00:00.000Z")] satisfies AnalyticsSession[];
+    const campaigns = [] satisfies CampaignFact[];
+    const projects = [{ id: "project-a", title: "Agent Demo", slug: "agent-demo" }] satisfies ProjectFact[];
+    const events = [
+      event("project_expand", {
+        occurredAt: "2026-06-11T10:01:00.000Z",
+        projectId: "project-a",
+        sessionId: "session-1"
+      }),
+      event("project_detail_view", {
+        occurredAt: "2026-06-11T10:02:00.000Z",
+        projectId: "project-a",
+        sessionId: "session-1"
+      })
+    ] satisfies AnalyticsEvent[];
+
+    expect(summarizeRecentSessions(events, sessions, campaigns, projects)[0].events).toEqual([
+      {
+        eventType: "project_detail_view",
+        projectTitle: "Agent Demo",
+        path: "/",
+        targetUrl: null,
+        occurredAt: "2026-06-11T10:02:00.000Z"
+      }
+    ]);
   });
 });
 
