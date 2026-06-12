@@ -159,6 +159,80 @@ describe("PrdReadTracker", () => {
 
     expect(trackEventMock).not.toHaveBeenCalled();
   });
+
+  it("records dwell when active sections change and updates active state for revisits", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-12T10:00:00.000Z"));
+
+    const { unmount } = render(
+      <>
+        <h2 id="section-a">Section A</h2>
+        <h2 id="section-b">Section B</h2>
+        <PrdReadTracker
+          headings={[
+            { id: "section-a", text: "Section A", depth: 2 },
+            { id: "section-b", text: "Section B", depth: 2 }
+          ]}
+          projectId="project-1"
+          projectSlug="project-one"
+          projectTitle="Project One"
+        />
+      </>
+    );
+    const sectionA = document.getElementById("section-a") as Element;
+    const sectionB = document.getElementById("section-b") as Element;
+
+    headingObserver("section-a").enter(sectionA);
+
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenLastCalledWith({
+      eventType: "prd_section_view",
+      projectId: "project-1",
+      sectionId: "section-a",
+      metadata: { projectSlug: "project-one", projectTitle: "Project One", sectionTitle: "Section A" }
+    });
+
+    vi.setSystemTime(new Date("2026-06-12T10:00:04.000Z"));
+    headingObserver("section-b").enter(sectionB);
+
+    expect(trackEventMock).toHaveBeenNthCalledWith(2, {
+      eventType: "section_dwell",
+      projectId: "project-1",
+      sectionId: "section-a",
+      durationMs: 4_000,
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
+    expect(trackEventMock).toHaveBeenNthCalledWith(3, {
+      eventType: "prd_section_view",
+      projectId: "project-1",
+      sectionId: "section-b",
+      metadata: { projectSlug: "project-one", projectTitle: "Project One", sectionTitle: "Section B" }
+    });
+
+    vi.setSystemTime(new Date("2026-06-12T10:00:09.000Z"));
+    headingObserver("section-a").enter(sectionA);
+
+    expect(trackEventMock).toHaveBeenCalledTimes(4);
+    expect(trackEventMock).toHaveBeenLastCalledWith({
+      eventType: "section_dwell",
+      projectId: "project-1",
+      sectionId: "section-b",
+      durationMs: 5_000,
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
+
+    vi.setSystemTime(new Date("2026-06-12T10:00:11.500Z"));
+    unmount();
+
+    expect(trackEventMock).toHaveBeenCalledTimes(5);
+    expect(trackEventMock).toHaveBeenLastCalledWith({
+      eventType: "section_dwell",
+      projectId: "project-1",
+      sectionId: "section-a",
+      durationMs: 2_500,
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
+  });
 });
 
 function sentinelObserver() {
@@ -169,9 +243,9 @@ function sentinelObserver() {
   return observer;
 }
 
-function headingObserver() {
+function headingObserver(id = "overview") {
   const observer = MockIntersectionObserver.instances.find((instance) =>
-    instance.observedElements.some((element) => element.id === "overview")
+    instance.observedElements.some((element) => element.id === id)
   );
   if (!observer) throw new Error("Heading observer was not registered");
   return observer;

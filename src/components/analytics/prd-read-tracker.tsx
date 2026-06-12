@@ -17,14 +17,19 @@ export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle 
   const sentinelRef = useRef<HTMLSpanElement | null>(null);
   const activeSectionRef = useRef<{ id: string; startedAt: number } | null>(null);
   const hasTrackedFullViewRef = useRef(false);
-  const hasTrackedDwellRef = useRef(false);
 
   useEffect(() => {
     activeSectionRef.current = null;
     hasTrackedFullViewRef.current = false;
-    hasTrackedDwellRef.current = false;
 
     const metadata = { projectSlug, projectTitle };
+    const flushActiveSection = () => {
+      const activeSection = activeSectionRef.current;
+      if (!activeSection) return;
+
+      trackDwell(projectId, activeSection.id, activeSection.startedAt, metadata);
+      activeSectionRef.current = null;
+    };
 
     if (typeof window.IntersectionObserver !== "function") {
       return;
@@ -59,10 +64,12 @@ export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle 
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           const heading = headings.find((item) => item.id === entry.target.id);
-          if (!heading || trackedSectionIds.has(heading.id)) continue;
+          if (!heading || activeSectionRef.current?.id === heading.id) continue;
 
+          flushActiveSection();
           activeSectionRef.current = { id: heading.id, startedAt: Date.now() };
-          hasTrackedDwellRef.current = false;
+          if (trackedSectionIds.has(heading.id)) continue;
+
           trackedSectionIds.add(heading.id);
           trackEvent({
             eventType: "prd_section_view",
@@ -86,10 +93,7 @@ export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle 
     }
 
     const handlePageExit = () => {
-      const activeSection = activeSectionRef.current;
-      if (!activeSection || hasTrackedDwellRef.current) return;
-      hasTrackedDwellRef.current = true;
-      trackDwell(projectId, activeSection.id, activeSection.startedAt, metadata);
+      flushActiveSection();
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
