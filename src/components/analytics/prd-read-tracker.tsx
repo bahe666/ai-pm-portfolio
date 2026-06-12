@@ -14,85 +14,82 @@ type PrdReadTrackerProps = {
 const MAX_DWELL_MS = 600_000;
 
 export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle }: PrdReadTrackerProps) {
-  const startedAtRef = useRef(0);
-  const activeSectionIdRef = useRef(headings[0]?.id ?? "prd");
+  const sentinelRef = useRef<HTMLSpanElement | null>(null);
+  const activeSectionRef = useRef<{ id: string; startedAt: number } | null>(null);
+  const hasTrackedFullViewRef = useRef(false);
   const hasTrackedDwellRef = useRef(false);
 
   useEffect(() => {
-    startedAtRef.current = Date.now();
-    activeSectionIdRef.current = headings[0]?.id ?? "prd";
+    activeSectionRef.current = null;
+    hasTrackedFullViewRef.current = false;
     hasTrackedDwellRef.current = false;
 
     const metadata = { projectSlug, projectTitle };
-    const trackSectionFallback = () => {
-      for (const heading of headings) {
-        trackEvent({
-          eventType: "prd_section_view",
-          projectId,
-          sectionId: heading.id,
-          metadata: {
-            ...metadata,
-            sectionTitle: heading.text
-          }
-        });
-      }
-    };
-
-    trackEvent({
-      eventType: "prd_full_view",
-      projectId,
-      metadata
-    });
-
-    let observer: IntersectionObserver | null = null;
 
     if (typeof window.IntersectionObserver !== "function") {
-      trackSectionFallback();
-    } else {
-      const trackedSectionIds = new Set<string>();
-      observer = new IntersectionObserver(
+      return;
+    }
+
+    const sentinel = sentinelRef.current;
+    let fullViewObserver: IntersectionObserver | null = null;
+
+    if (sentinel) {
+      fullViewObserver = new IntersectionObserver(
         (entries) => {
-          for (const entry of entries) {
-            if (!entry.isIntersecting) continue;
-            const heading = headings.find((item) => item.id === entry.target.id);
-            if (!heading || trackedSectionIds.has(heading.id)) continue;
-
-            activeSectionIdRef.current = heading.id;
-            trackedSectionIds.add(heading.id);
-            trackEvent({
-              eventType: "prd_section_view",
-              projectId,
-              sectionId: heading.id,
-              metadata: {
-                ...metadata,
-                sectionTitle: heading.text
-              }
-            });
+          if (hasTrackedFullViewRef.current || !entries.some((entry) => entry.isIntersecting)) {
+            return;
           }
+
+          hasTrackedFullViewRef.current = true;
+          trackEvent({
+            eventType: "prd_full_view",
+            projectId,
+            metadata
+          });
+          fullViewObserver?.disconnect();
         },
-        { rootMargin: "0px 0px -45% 0px", threshold: 0.2 }
+        { threshold: 0.2 }
       );
+      fullViewObserver.observe(sentinel);
+    }
 
-      let observedCount = 0;
-      for (const heading of headings) {
-        const element = document.getElementById(heading.id);
-        if (element) {
-          observer.observe(element);
-          observedCount += 1;
+    const trackedSectionIds = new Set<string>();
+    const sectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const heading = headings.find((item) => item.id === entry.target.id);
+          if (!heading || trackedSectionIds.has(heading.id)) continue;
+
+          activeSectionRef.current = { id: heading.id, startedAt: Date.now() };
+          hasTrackedDwellRef.current = false;
+          trackedSectionIds.add(heading.id);
+          trackEvent({
+            eventType: "prd_section_view",
+            projectId,
+            sectionId: heading.id,
+            metadata: {
+              ...metadata,
+              sectionTitle: heading.text
+            }
+          });
         }
-      }
+      },
+      { rootMargin: "0px 0px -45% 0px", threshold: 0.2 }
+    );
 
-      if (observedCount === 0) {
-        observer.disconnect();
-        observer = null;
-        trackSectionFallback();
+    for (const heading of headings) {
+      const element = document.getElementById(heading.id);
+      if (element) {
+        sectionObserver.observe(element);
       }
     }
 
     const handlePageExit = () => {
-      if (hasTrackedDwellRef.current) return;
+      const activeSection = activeSectionRef.current;
+      if (!activeSection || hasTrackedDwellRef.current) return;
       hasTrackedDwellRef.current = true;
-      trackDwell(projectId, activeSectionIdRef.current, startedAtRef.current, metadata);
+      trackDwell(projectId, activeSection.id, activeSection.startedAt, metadata);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
@@ -104,14 +101,29 @@ export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle 
     window.addEventListener("pagehide", handlePageExit);
 
     return () => {
-      observer?.disconnect();
+      fullViewObserver?.disconnect();
+      sectionObserver.disconnect();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("pagehide", handlePageExit);
       handlePageExit();
     };
   }, [headings, projectId, projectSlug, projectTitle]);
 
-  return null;
+  return (
+    <span
+      aria-hidden="true"
+      data-prd-read-sentinel=""
+      ref={sentinelRef}
+      style={{
+        display: "block",
+        height: 1,
+        overflow: "hidden",
+        pointerEvents: "none",
+        position: "absolute",
+        width: 1
+      }}
+    />
+  );
 }
 
 function trackDwell(
