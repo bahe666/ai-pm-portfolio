@@ -16,6 +16,8 @@ const statusMessages: Record<string, { tone: "success" | "error"; text: string }
   "email-required": { tone: "error", text: "请输入白名单邮箱。" },
   "email-not-allowed": { tone: "error", text: "该邮箱不在后台白名单中，请使用已配置的管理员邮箱。" },
   "login-unavailable": { tone: "error", text: "登录服务暂时不可用，请稍后再试。" },
+  "password-failed": { tone: "error", text: "邮箱或密码不正确，或该账号尚未启用密码登录。" },
+  "password-required": { tone: "error", text: "请输入后台登录密码。" },
   "send-failed": { tone: "success", text: "如果你已经收到验证码，请直接在下方输入；如果没有收到，请稍后再试。" },
   "verify-failed": { tone: "error", text: "验证码无效或已过期，请重新发送。" }
 };
@@ -85,6 +87,35 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <button type="submit">验证并进入后台</button>
           </form>
         ) : null}
+
+        <div className="login-divider" role="separator">
+          或
+        </div>
+
+        <form action={signInWithPasswordAction} className="login-form">
+          <h2 className="login-method-title">密码登录</h2>
+          <label htmlFor="admin-password-email">邮箱</label>
+          <input
+            autoComplete="username"
+            defaultValue={email}
+            id="admin-password-email"
+            name="email"
+            placeholder="你的白名单邮箱"
+            required
+            spellCheck={false}
+            type="email"
+          />
+          <label htmlFor="admin-password">登录密码</label>
+          <input
+            autoComplete="current-password"
+            id="admin-password"
+            name="password"
+            placeholder="输入后台密码"
+            required
+            type="password"
+          />
+          <button type="submit">使用密码登录</button>
+        </form>
       </section>
     </main>
   );
@@ -122,6 +153,48 @@ async function sendLoginCode(formData: FormData) {
   }
 
   redirect(`/login?message=${nextMessage}&email=${encodeURIComponent(email)}`);
+}
+
+async function signInWithPasswordAction(formData: FormData) {
+  "use server";
+
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email) {
+    redirect("/login?message=email-required");
+  }
+
+  if (!isAdminEmailConfigured(email)) {
+    redirect(`/login?message=email-not-allowed&email=${encodeURIComponent(email)}`);
+  }
+
+  if (!password) {
+    redirect(`/login?message=password-required&email=${encodeURIComponent(email)}`);
+  }
+
+  let signedIn = false;
+  let nextMessage = "password-failed";
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    signedIn = !error;
+  } catch {
+    nextMessage = "login-unavailable";
+  }
+
+  if (!signedIn) {
+    redirect(`/login?message=${nextMessage}&email=${encodeURIComponent(email)}`);
+  }
+
+  redirect("/admin");
 }
 
 async function verifyLoginCode(formData: FormData) {

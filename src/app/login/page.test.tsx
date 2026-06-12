@@ -3,6 +3,18 @@ import { describe, expect, it } from "vitest";
 import LoginPage from "./page";
 
 describe("LoginPage", () => {
+  it("renders password login as a fallback method", async () => {
+    render(
+      await LoginPage({
+        searchParams: Promise.resolve({})
+      })
+    );
+
+    expect(screen.getByRole("heading", { name: "密码登录" })).toBeInTheDocument();
+    expect(screen.getByLabelText("登录密码")).toHaveAttribute("name", "password");
+    expect(screen.getByRole("button", { name: "使用密码登录" })).toBeInTheDocument();
+  });
+
   it("renders email code verification after an OTP is sent", async () => {
     render(
       await LoginPage({
