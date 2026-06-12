@@ -1,13 +1,22 @@
 import ReactMarkdown from "react-markdown";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
+import { PrdReadTracker } from "@/components/analytics/prd-read-tracker";
 import { extractMarkdownHeadings } from "@/lib/markdown";
 
-export function MarkdownPrd({ markdown }: { markdown: string }) {
+type MarkdownPrdProps = {
+  markdown: string;
+  projectId: string;
+  projectSlug: string;
+  projectTitle: string;
+};
+
+export function MarkdownPrd({ markdown, projectId, projectSlug, projectTitle }: MarkdownPrdProps) {
   const headings = extractMarkdownHeadings(markdown);
 
   return (
     <div className="prd-layout">
+      <PrdReadTracker headings={headings} projectId={projectId} projectSlug={projectSlug} projectTitle={projectTitle} />
       <nav className="prd-toc" aria-label="PRD 目录">
         <p>目录</p>
         {headings.length > 0 ? (

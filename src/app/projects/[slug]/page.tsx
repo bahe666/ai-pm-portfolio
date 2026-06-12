@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ProjectDetailTracker } from "@/components/analytics/project-detail-tracker";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { MarkdownPrd } from "@/components/public/markdown-prd";
 import { SiteFooter } from "@/components/public/site-footer";
 import { getPublishedProjectBySlug } from "@/lib/data/public";
@@ -12,6 +14,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <main className="project-detail" data-project-id={project.id}>
+      <ProjectDetailTracker projectId={project.id} projectSlug={project.slug} projectTitle={project.title} />
       <Link className="back-link" href="/">
         返回作品集首页
       </Link>
@@ -21,9 +24,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <h1>{project.title}</h1>
         <p>{project.summary}</p>
         <div className="action-row">
-          <a className="button-link button-link--primary" href={project.demoUrl} target="_blank" rel="noreferrer">
+          <TrackedLink
+            className="button-link button-link--primary"
+            eventType="demo_click"
+            href={project.demoUrl}
+            metadata={{ projectSlug: project.slug, projectTitle: project.title }}
+            projectId={project.id}
+            rel="noreferrer"
+            target="_blank"
+            targetUrl={project.demoUrl}
+          >
             查看真实 Demo
-          </a>
+          </TrackedLink>
         </div>
       </header>
 
@@ -64,7 +76,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <p>Product Requirement Document</p>
           <h2 id="prd-title">完整 PRD</h2>
         </div>
-        <MarkdownPrd markdown={project.prdMarkdown} />
+        <MarkdownPrd
+          markdown={project.prdMarkdown}
+          projectId={project.id}
+          projectSlug={project.slug}
+          projectTitle={project.title}
+        />
       </section>
 
       <SiteFooter />

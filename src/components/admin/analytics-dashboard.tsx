@@ -37,7 +37,6 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
               <tr>
                 <th>项目</th>
                 <th>曝光</th>
-                <th>展开</th>
                 <th>详情</th>
                 <th>PRD 深读</th>
                 <th>Demo/外链</th>
@@ -52,14 +51,13 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
                     <small>{project.slug ? `/${project.slug}` : project.projectId}</small>
                   </td>
                   <NumberCell value={project.impressions} />
-                  <NumberCell value={project.expands} />
                   <NumberCell value={project.detailViews} />
                   <NumberCell value={project.prdDeepReads} />
                   <NumberCell value={project.demoClicks} />
                   <td>{formatSeconds(project.averageDwellSeconds)}</td>
                 </tr>
               ))}
-              {data.projectInterest.length === 0 ? <EmptyRow colSpan={7} label="暂无项目行为事件。" /> : null}
+              {data.projectInterest.length === 0 ? <EmptyRow colSpan={6} label="暂无项目行为事件。" /> : null}
             </tbody>
           </table>
         </div>

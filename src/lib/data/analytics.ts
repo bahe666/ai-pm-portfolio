@@ -57,7 +57,7 @@ export type ProjectInterest = {
 };
 
 export type FunnelStep = {
-  key: "page_view" | "project_impression" | "project_expand" | "project_detail_view" | "prd_full_view" | "demo_click";
+  key: "page_view" | "project_impression" | "project_detail_view" | "prd_full_view" | "demo_click";
   label: string;
   sessions: number;
 };
@@ -130,7 +130,6 @@ export type AnalyticsDashboardData = {
 const FUNNEL_STEPS: FunnelStep[] = [
   { key: "page_view", label: "访问页面", sessions: 0 },
   { key: "project_impression", label: "看到项目", sessions: 0 },
-  { key: "project_expand", label: "展开项目", sessions: 0 },
   { key: "project_detail_view", label: "进入详情", sessions: 0 },
   { key: "prd_full_view", label: "阅读 PRD", sessions: 0 },
   { key: "demo_click", label: "点击 Demo/外链", sessions: 0 }

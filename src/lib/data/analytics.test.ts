@@ -81,7 +81,6 @@ describe("summarizeFunnel", () => {
     expect(summarizeFunnel(events)).toEqual([
       { key: "page_view", label: "访问页面", sessions: 2 },
       { key: "project_impression", label: "看到项目", sessions: 2 },
-      { key: "project_expand", label: "展开项目", sessions: 2 },
       { key: "project_detail_view", label: "进入详情", sessions: 1 },
       { key: "prd_full_view", label: "阅读 PRD", sessions: 1 },
       { key: "demo_click", label: "点击 Demo/外链", sessions: 1 }
