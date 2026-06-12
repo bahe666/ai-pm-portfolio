@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-const BACKUP_TABLES = ["profiles", "projects", "campaigns", "sessions", "events"] as const;
+const BACKUP_TABLES = ["profiles", "projects", "campaigns", "visitors", "sessions", "events"] as const;
 
 export async function GET() {
   await requireAdmin();
@@ -24,7 +24,7 @@ export async function GET() {
   return NextResponse.json(
     {
       exportedAt,
-      tables: Object.fromEntries(entries)
+      ...Object.fromEntries(entries)
     },
     {
       headers: {

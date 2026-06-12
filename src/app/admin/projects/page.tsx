@@ -1,24 +1,40 @@
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { Plus, UploadCloud } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/admin";
 import { listAdminProjects, upsertProject } from "@/lib/data/admin";
-import { parseAdminProjectFormData } from "@/lib/data/admin-project-input";
+import { isAdminProjectInputError, parseAdminProjectFormData } from "@/lib/data/admin-project-input";
 import type { Project } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+type AdminPageProps = {
+  searchParams?: Promise<{
+    message?: string | string[];
+  }>;
+};
 
 async function createProjectAction(formData: FormData) {
   "use server";
 
   await requireAdmin();
-  const project = await parseAdminProjectFormData(formData);
-  await upsertProject(project);
-  revalidatePath("/admin/projects");
-  revalidatePath("/");
+  let message = "saved";
+
+  try {
+    const project = await parseAdminProjectFormData(formData);
+    await upsertProject(project);
+    revalidatePath("/admin/projects");
+    revalidatePath("/");
+  } catch (error) {
+    message = isAdminProjectInputError(error) ? "invalid-input" : "save-failed";
+  }
+
+  redirect(`/admin/projects?message=${message}`);
 }
 
-export default async function AdminProjectsPage() {
+export default async function AdminProjectsPage({ searchParams }: AdminPageProps) {
   const projects = await listAdminProjects();
+  const statusMessage = getStatusMessage((await searchParams)?.message);
 
   return (
     <div className="admin-stack">
@@ -34,6 +50,7 @@ export default async function AdminProjectsPage() {
           <Metric label="精选" value={projects.filter((project) => project.isFeatured).length} />
         </div>
       </header>
+      {statusMessage ? <StatusNotice message={statusMessage.message} tone={statusMessage.tone} /> : null}
 
       <section className="admin-card" aria-labelledby="new-project-title">
         <div className="admin-section-heading">
@@ -200,4 +217,20 @@ function statusLabel(status: Project["status"]) {
   if (status === "published") return "已发布";
   if (status === "hidden") return "隐藏";
   return "草稿";
+}
+
+function getStatusMessage(message: string | string[] | undefined) {
+  const value = Array.isArray(message) ? message[0] : message;
+  if (value === "saved") return { message: "项目已保存。", tone: "success" as const };
+  if (value === "invalid-input") return { message: "表单内容不完整或格式不正确，请检查必填项、URL 和封面文件。", tone: "error" as const };
+  if (value === "save-failed") return { message: "保存失败，请稍后重试或检查 Supabase 配置。", tone: "error" as const };
+  return null;
+}
+
+function StatusNotice({ message, tone }: { message: string; tone: "success" | "error" }) {
+  return (
+    <p className={`admin-status admin-status--${tone}`} role="status">
+      {message}
+    </p>
+  );
 }

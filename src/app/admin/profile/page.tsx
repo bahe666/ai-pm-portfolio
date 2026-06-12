@@ -1,30 +1,49 @@
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { Save } from "lucide-react";
+import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/admin";
-import { updateProfile } from "@/lib/data/admin";
-import { getPublicProfile } from "@/lib/data/public";
+import { AdminInputError, getAdminProfile, updateProfile } from "@/lib/data/admin";
 
 export const dynamic = "force-dynamic";
+
+type AdminPageProps = {
+  searchParams?: Promise<{
+    message?: string | string[];
+  }>;
+};
 
 async function updateProfileAction(formData: FormData) {
   "use server";
 
   await requireAdmin();
-  await updateProfile({
-    displayName: getString(formData, "displayName"),
-    title: getString(formData, "title"),
-    headline: getString(formData, "headline"),
-    intro: getString(formData, "intro"),
-    contact: parseContactJson(getString(formData, "contact")),
-    resumeSnapshot: getLines(formData, "resumeSnapshot")
-  });
+  let message = "saved";
 
-  revalidatePath("/admin/profile");
-  revalidatePath("/");
+  try {
+    await updateProfile({
+      displayName: getString(formData, "displayName"),
+      title: getString(formData, "title"),
+      headline: getString(formData, "headline"),
+      intro: getString(formData, "intro"),
+      contact: parseContactJson(getString(formData, "contact")),
+      resumeSnapshot: getLines(formData, "resumeSnapshot")
+    });
+
+    revalidatePath("/admin/profile");
+    revalidatePath("/");
+  } catch (error) {
+    message =
+      error instanceof z.ZodError || error instanceof SyntaxError || error instanceof AdminInputError
+        ? "invalid-input"
+        : "save-failed";
+  }
+
+  redirect(`/admin/profile?message=${message}`);
 }
 
-export default async function AdminProfilePage() {
-  const profile = await getPublicProfile();
+export default async function AdminProfilePage({ searchParams }: AdminPageProps) {
+  const profile = await getAdminProfile();
+  const statusMessage = getStatusMessage((await searchParams)?.message);
 
   return (
     <div className="admin-stack">
@@ -45,6 +64,7 @@ export default async function AdminProfilePage() {
           </div>
         </div>
       </header>
+      {statusMessage ? <StatusNotice message={statusMessage.message} tone={statusMessage.tone} /> : null}
 
       <section className="admin-card" aria-labelledby="profile-current-title">
         <div className="admin-section-heading">
@@ -151,7 +171,7 @@ function parseContactJson(value: string) {
 
   const parsed: unknown = JSON.parse(value);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Contact must be a JSON object");
+    throw new AdminInputError("Contact must be a JSON object");
   }
 
   return Object.fromEntries(
@@ -159,5 +179,21 @@ function parseContactJson(value: string) {
       .filter((entry): entry is [string, string] => typeof entry[1] === "string")
       .map(([key, contactValue]) => [key.trim(), contactValue.trim()])
       .filter(([key, contactValue]) => key && contactValue)
+  );
+}
+
+function getStatusMessage(message: string | string[] | undefined) {
+  const value = Array.isArray(message) ? message[0] : message;
+  if (value === "saved") return { message: "资料已保存。", tone: "success" as const };
+  if (value === "invalid-input") return { message: "表单内容不完整或格式不正确，请检查 Contact JSON 和必填项。", tone: "error" as const };
+  if (value === "save-failed") return { message: "保存失败，请稍后重试或检查 Supabase 配置。", tone: "error" as const };
+  return null;
+}
+
+function StatusNotice({ message, tone }: { message: string; tone: "success" | "error" }) {
+  return (
+    <p className={`admin-status admin-status--${tone}`} role="status">
+      {message}
+    </p>
   );
 }

@@ -16,11 +16,12 @@ export default function AdminBackupsPage() {
       <section className="admin-card admin-download" aria-labelledby="backup-export-title">
         <div>
           <h2 id="backup-export-title">JSON 备份内容</h2>
-          <p>备份会包含公开资料、项目、Markdown PRD、项目思考、投递记录，以及访问统计相关的 sessions 和 events。</p>
+          <p>备份会包含公开资料、项目、Markdown PRD、项目思考、投递记录，以及访问统计相关的 visitors、sessions 和 events。</p>
           <ul className="admin-plain-list">
             <li>profiles：公开身份、联系方式和 resume snapshot。</li>
             <li>projects：作品集项目、PRD Markdown、贡献说明、AI 使用说明、关键取舍和复盘。</li>
             <li>campaigns：公司、岗位、JD 摘要、渠道标签和专属链接 slug。</li>
+            <li>visitors：匿名访客标识和首次、最近访问时间。</li>
             <li>sessions / events：访问会话与交互事件，用于后续 analytics 汇总。</li>
           </ul>
         </div>

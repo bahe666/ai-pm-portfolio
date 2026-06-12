@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { fixtureProfile } from "@/lib/fixtures";
 import type { Campaign, Profile, Project } from "@/lib/types";
 
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
@@ -174,6 +175,18 @@ export async function createCampaign(input: CampaignInput): Promise<Campaign> {
 
   if (error || !data) throw error ?? new Error("Campaign insert returned no row");
   return toCampaign(data);
+}
+
+export async function getAdminProfile(): Promise<Profile> {
+  try {
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", ADMIN_PROFILE_ID).single();
+
+    if (error || !data) return fixtureProfile;
+    return toProfile(data);
+  } catch {
+    return fixtureProfile;
+  }
 }
 
 export async function updateProfile(input: ProfileInput): Promise<Profile> {

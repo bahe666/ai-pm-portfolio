@@ -1,23 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CampaignInputSchema, ProfileInputSchema, ProjectInputSchema, uploadProjectCover } from "./admin";
+import {
+  ADMIN_PROFILE_ID,
+  CampaignInputSchema,
+  ProfileInputSchema,
+  ProjectInputSchema,
+  getAdminProfile,
+  uploadProjectCover
+} from "./admin";
 import { parseAdminProjectFormData } from "./admin-project-input";
 
 const supabaseMocks = vi.hoisted(() => {
   const upload = vi.fn();
   const getPublicUrl = vi.fn();
-  const from = vi.fn(() => ({
+  const storageFrom = vi.fn(() => ({
     getPublicUrl,
     upload
   }));
+  const from = vi.fn();
 
   return {
     client: {
+      from,
       storage: {
-        from
+        from: storageFrom
       }
     },
     from,
     getPublicUrl,
+    storageFrom,
     upload
   };
 });
@@ -28,6 +38,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 beforeEach(() => {
   supabaseMocks.from.mockClear();
+  supabaseMocks.storageFrom.mockClear();
   supabaseMocks.getPublicUrl.mockReset();
   supabaseMocks.upload.mockReset();
 });
@@ -276,5 +287,33 @@ describe("ProfileInputSchema", () => {
         resumeSnapshot: [""]
       })
     ).toThrow();
+  });
+});
+
+describe("getAdminProfile", () => {
+  it("reads the fixed admin profile row", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        id: ADMIN_PROFILE_ID,
+        display_name: "你的姓名",
+        title: "AI 产品经理实习生候选人",
+        headline: "用 Demo 讲清楚产品判断。",
+        intro: "整理 AI 产品原型、PRD 和项目思考。",
+        contact: { email: "you@example.com" },
+        resume_snapshot: ["参与团队工作流 AI 化转型"],
+        updated_at: "2026-06-12T00:00:00.000Z"
+      },
+      error: null
+    });
+    const eq = vi.fn(() => ({ single }));
+    const select = vi.fn(() => ({ eq }));
+    supabaseMocks.from.mockReturnValue({ select });
+
+    const profile = await getAdminProfile();
+
+    expect(supabaseMocks.from).toHaveBeenCalledWith("profiles");
+    expect(select).toHaveBeenCalledWith("*");
+    expect(eq).toHaveBeenCalledWith("id", ADMIN_PROFILE_ID);
+    expect(profile.id).toBe(ADMIN_PROFILE_ID);
   });
 });

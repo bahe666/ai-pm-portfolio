@@ -1,34 +1,51 @@
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { Link2, Plus } from "lucide-react";
+import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/admin";
 import { CampaignInputSchema, createCampaign, listCampaigns } from "@/lib/data/admin";
 import type { Campaign } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+type AdminPageProps = {
+  searchParams?: Promise<{
+    message?: string | string[];
+  }>;
+};
+
 async function createCampaignAction(formData: FormData) {
   "use server";
 
   await requireAdmin();
-  await createCampaign(
-    CampaignInputSchema.parse({
-      company: getString(formData, "company"),
-      role: getString(formData, "role"),
-      slug: getString(formData, "slug"),
-      jdUrl: getString(formData, "jdUrl"),
-      tags: parseTags(getString(formData, "tags")),
-      channel: getString(formData, "channel") || "manual",
-      jdSummary: getString(formData, "jdSummary"),
-      notes: getString(formData, "notes"),
-      isActive: formData.get("isActive") === "on"
-    })
-  );
-  revalidatePath("/admin/campaigns");
+  let message = "saved";
+
+  try {
+    await createCampaign(
+      CampaignInputSchema.parse({
+        company: getString(formData, "company"),
+        role: getString(formData, "role"),
+        slug: getString(formData, "slug"),
+        jdUrl: getString(formData, "jdUrl"),
+        tags: parseTags(getString(formData, "tags")),
+        channel: getString(formData, "channel") || "manual",
+        jdSummary: getString(formData, "jdSummary"),
+        notes: getString(formData, "notes"),
+        isActive: formData.get("isActive") === "on"
+      })
+    );
+    revalidatePath("/admin/campaigns");
+  } catch (error) {
+    message = error instanceof z.ZodError || error instanceof SyntaxError ? "invalid-input" : "save-failed";
+  }
+
+  redirect(`/admin/campaigns?message=${message}`);
 }
 
-export default async function AdminCampaignsPage() {
+export default async function AdminCampaignsPage({ searchParams }: AdminPageProps) {
   const campaigns = await listCampaigns();
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const statusMessage = getStatusMessage((await searchParams)?.message);
 
   return (
     <div className="admin-stack">
@@ -43,6 +60,7 @@ export default async function AdminCampaignsPage() {
           <Metric label="启用中" value={campaigns.filter((campaign) => campaign.isActive).length} />
         </div>
       </header>
+      {statusMessage ? <StatusNotice message={statusMessage.message} tone={statusMessage.tone} /> : null}
 
       <section className="admin-card" aria-labelledby="new-campaign-title">
         <div className="admin-section-heading">
@@ -183,4 +201,20 @@ function parseTags(value: string) {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function getStatusMessage(message: string | string[] | undefined) {
+  const value = Array.isArray(message) ? message[0] : message;
+  if (value === "saved") return { message: "投递链接已创建。", tone: "success" as const };
+  if (value === "invalid-input") return { message: "表单内容不完整或格式不正确，请检查 slug、URL 和必填项。", tone: "error" as const };
+  if (value === "save-failed") return { message: "创建失败，请稍后重试或检查 Supabase 配置。", tone: "error" as const };
+  return null;
+}
+
+function StatusNotice({ message, tone }: { message: string; tone: "success" | "error" }) {
+  return (
+    <p className={`admin-status admin-status--${tone}`} role="status">
+      {message}
+    </p>
+  );
 }

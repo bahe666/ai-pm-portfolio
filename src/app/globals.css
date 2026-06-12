@@ -914,6 +914,29 @@ select {
   padding: 20px;
 }
 
+.admin-status {
+  margin: 0;
+  border: 1px solid rgba(36, 26, 18, 0.3);
+  background: var(--surface);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 11px 13px;
+}
+
+.admin-status--success {
+  border-color: color-mix(in srgb, var(--olive) 42%, var(--line));
+  background: color-mix(in srgb, var(--olive) 12%, white);
+  color: color-mix(in srgb, var(--olive) 72%, var(--ink));
+}
+
+.admin-status--error {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+  background: color-mix(in srgb, var(--accent) 11%, white);
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink));
+}
+
 .admin-section-heading {
   display: flex;
   min-width: 0;
