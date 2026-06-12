@@ -16,7 +16,7 @@ const statusMessages: Record<string, { tone: "success" | "error"; text: string }
   "email-required": { tone: "error", text: "请输入白名单邮箱。" },
   "email-not-allowed": { tone: "error", text: "该邮箱不在后台白名单中，请使用已配置的管理员邮箱。" },
   "login-unavailable": { tone: "error", text: "登录服务暂时不可用，请稍后再试。" },
-  "send-failed": { tone: "error", text: "验证码发送失败，请确认邮箱已在 Supabase Auth 中存在后重试。" },
+  "send-failed": { tone: "success", text: "如果你已经收到验证码，请直接在下方输入；如果没有收到，请稍后再试。" },
   "verify-failed": { tone: "error", text: "验证码无效或已过期，请重新发送。" }
 };
 
@@ -25,7 +25,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const message = Array.isArray(params.message) ? params.message[0] : params.message;
   const email = normalizeEmailParam(params.email);
   const status = message ? statusMessages[message] : null;
-  const showCodeForm = Boolean(email && (message === "code-sent" || message === "code-required" || message === "verify-failed"));
+  const showCodeForm = Boolean(
+    email && (message === "code-sent" || message === "send-failed" || message === "code-required" || message === "verify-failed")
+  );
 
   return (
     <main className="login-page">
