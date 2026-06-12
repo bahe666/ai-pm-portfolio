@@ -7,6 +7,9 @@ out/
 .env*
 !.env.example
 
+supabase/.temp/
+.vercel/
+
 *.tsbuildinfo
 coverage/
 playwright-report/

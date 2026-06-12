@@ -133,7 +133,4 @@ drop policy if exists "Project covers are publicly readable" on storage.objects;
 create policy "Project covers are publicly readable"
 on storage.objects for select
 to anon, authenticated
-using (
-  bucket_id = 'project-covers'
-  and storage.allow_only_operation('storage.object.get_public')
-);
+using (bucket_id = 'project-covers');
