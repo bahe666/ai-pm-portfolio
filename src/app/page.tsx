@@ -1,4 +1,4 @@
-import { TrackedLink } from "@/components/analytics/tracked-link";
+import Link from "next/link";
 import { ProjectGrid } from "@/components/public/project-grid";
 import { SiteFooter } from "@/components/public/site-footer";
 import { getPublicProfile, getPublishedProjects } from "@/lib/data/public";
@@ -33,17 +33,11 @@ export default async function HomePage() {
           <div className="featured-preview__list">
             {featuredProjects.length > 0 ? (
               featuredProjects.map((project) => (
-                <TrackedLink
-                  eventType="project_detail_view"
-                  href={`/projects/${project.slug}`}
-                  key={project.id}
-                  metadata={{ projectSlug: project.slug, projectTitle: project.title }}
-                  projectId={project.id}
-                >
+                <Link href={`/projects/${project.slug}`} key={project.id}>
                   <span>{project.tags.slice(0, 2).join(" / ")}</span>
                   <strong>{project.title}</strong>
                   <em>{project.summary}</em>
-                </TrackedLink>
+                </Link>
               ))
             ) : (
               <p>项目内容正在整理。</p>

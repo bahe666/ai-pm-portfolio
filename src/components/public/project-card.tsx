@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ProjectImpression } from "@/components/analytics/project-impression";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 import { summarizeMarkdown } from "@/lib/markdown";
@@ -55,15 +56,9 @@ export function ProjectCard({ project }: { project: Project }) {
         </dl>
 
         <div className="action-row">
-          <TrackedLink
-            className="button-link button-link--primary"
-            eventType="project_detail_view"
-            href={`/projects/${project.slug}`}
-            metadata={{ projectSlug: project.slug, projectTitle: project.title }}
-            projectId={project.id}
-          >
+          <Link className="button-link button-link--primary" href={`/projects/${project.slug}`}>
             阅读详情
-          </TrackedLink>
+          </Link>
           <TrackedLink
             className="button-link"
             eventType="demo_click"
