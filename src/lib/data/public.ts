@@ -39,31 +39,54 @@ function toProject(row: Record<string, unknown>): Project {
   };
 }
 
+function shouldUsePublicFixtures() {
+  return (
+    process.env.PORTFOLIO_USE_FIXTURES === "true" ||
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
 export const getPublicProfile = cache(async (): Promise<Profile> => {
-  try {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase.from("profiles").select("*").limit(1).single();
-    if (error || !data) return fixtureProfile;
-    return toProfile(data);
-  } catch {
+  if (shouldUsePublicFixtures()) {
     return fixtureProfile;
   }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.from("profiles").select("*").limit(1).maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return fixtureProfile;
+  }
+
+  return toProfile(data);
 });
 
 export const getPublishedProjects = cache(async (): Promise<Project[]> => {
-  try {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("status", "published")
-      .order("sort_order", { ascending: true });
-
-    if (error || !data) return fixtureProjects;
-    return data.map(toProject);
-  } catch {
+  if (shouldUsePublicFixtures()) {
     return fixtureProjects;
   }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("status", "published")
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return [];
+  }
+
+  return data.map(toProject);
 });
 
 export async function getPublishedProjectBySlug(slug: string) {

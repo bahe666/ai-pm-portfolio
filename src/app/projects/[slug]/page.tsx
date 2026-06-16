@@ -6,6 +6,8 @@ import { MarkdownPrd } from "@/components/public/markdown-prd";
 import { SiteFooter } from "@/components/public/site-footer";
 import { getPublishedProjectBySlug } from "@/lib/data/public";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProjectDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const project = await getPublishedProjectBySlug(slug);

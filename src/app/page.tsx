@@ -3,6 +3,8 @@ import { ProjectGrid } from "@/components/public/project-grid";
 import { SiteFooter } from "@/components/public/site-footer";
 import { getPublicProfile, getPublishedProjects } from "@/lib/data/public";
 
+export const dynamic = "force-dynamic";
+
 const abilityChain = ["场景识别", "问题定义", "AI 原型", "PRD 表达", "协作复盘"];
 
 export default async function HomePage() {

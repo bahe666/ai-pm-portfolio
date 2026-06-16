@@ -2,10 +2,10 @@ import { expect, test } from "@playwright/test";
 
 const blockedPayloadKeys = ["browser", "os", "language", "screenWidth", "screenHeight"];
 
-test("campaign vanity route redirects home and sets campaign cookie", async ({ context, page }) => {
+test("campaign vanity route preserves URL and sets campaign cookie", async ({ context, page }) => {
   await page.goto("/v/sample-ai-pm");
 
-  await expect.poll(() => new URL(page.url()).pathname).toBe("/");
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/v/sample-ai-pm");
   await expect(page.getByRole("heading", { name: /你好，我是/ })).toBeVisible();
 
   const cookies = await context.cookies();
