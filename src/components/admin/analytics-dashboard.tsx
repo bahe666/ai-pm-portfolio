@@ -206,7 +206,6 @@ export function AnalyticsDashboard({
                 </div>
                 <div>
                   <span>{session.location}</span>
-                  <span>{session.ipAddress ?? "IP 未记录"}</span>
                   {session.sourceHint ? <span>{session.sourceHint}</span> : null}
                 </div>
               </div>

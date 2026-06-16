@@ -21,7 +21,6 @@ export type AnalyticsSession = {
   visitorId: string;
   campaignId: string | null;
   referrer: string | null;
-  ipAddress: string | null;
   geoCountry: string | null;
   geoRegion: string | null;
   geoCity: string | null;
@@ -97,7 +96,6 @@ export type RecentSessionSummary = {
   campaignLabel: string;
   startedAt: string;
   lastEventAt: string | null;
-  ipAddress: string | null;
   location: string;
   sourceHint: string | null;
   paths: string[];
@@ -320,7 +318,6 @@ export function summarizeRecentSessions(
         campaignLabel: campaign ? `${campaign.company} / ${campaign.role}` : "直接访问",
         startedAt: session.startedAt,
         lastEventAt: sessionEvents.at(-1)?.occurredAt ?? null,
-        ipAddress: session.ipAddress,
         location: formatLocation(session),
         sourceHint: session.sourceHint,
         paths: Array.from(new Set(sessionEvents.map((event) => event.path))).slice(0, 5),
@@ -352,7 +349,7 @@ export async function getAnalyticsDashboard(): Promise<AnalyticsDashboardData> {
       .limit(1200),
     supabase
       .from("sessions")
-      .select("id,visitor_id,campaign_id,referrer,ip_address,geo_country,geo_region,geo_city,source_hint,started_at,ended_at")
+      .select("id,visitor_id,campaign_id,referrer,geo_country,geo_region,geo_city,source_hint,started_at,ended_at")
       .order("started_at", { ascending: false })
       .limit(300),
     supabase.from("campaigns").select("id,company,role,tags,slug").order("created_at", { ascending: false }),
@@ -468,7 +465,6 @@ function toAnalyticsSession(row: Record<string, unknown>): AnalyticsSession {
     visitorId: String(row.visitor_id),
     campaignId: row.campaign_id ? String(row.campaign_id) : null,
     referrer: row.referrer ? String(row.referrer) : null,
-    ipAddress: row.ip_address ? String(row.ip_address) : null,
     geoCountry: row.geo_country ? String(row.geo_country) : null,
     geoRegion: row.geo_region ? String(row.geo_region) : null,
     geoCity: row.geo_city ? String(row.geo_city) : null,

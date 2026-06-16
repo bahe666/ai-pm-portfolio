@@ -1,14 +1,13 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { POST } from "./route";
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/supabase/admin", () => ({
-  createSupabaseAdminClient: vi.fn(() => {
-    throw new Error("Supabase env unavailable in route tests");
-  })
+  createSupabaseAdminClient: vi.fn()
 }));
 
 vi.mock("next/server", async (importOriginal) => {
@@ -25,6 +24,9 @@ vi.mock("next/server", async (importOriginal) => {
 describe("POST /api/events", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(createSupabaseAdminClient).mockImplementation(() => {
+      throw new Error("Supabase env unavailable in route tests");
+    });
   });
 
   afterEach(() => {
@@ -108,6 +110,37 @@ describe("POST /api/events", () => {
     expect(setCookie).toContain("portfolio_session=");
     expect(response.status).toBe(200);
   });
+
+  it("stores geo attribution without persisting the raw IP address", async () => {
+    const supabase = createSupabaseMock();
+    vi.mocked(createSupabaseAdminClient).mockReturnValue(supabase.client);
+
+    const response = await POST(
+      createEventRequest(
+        {
+          eventType: "page_view",
+          path: "/"
+        },
+        {
+          "x-forwarded-for": "203.0.113.10, 198.51.100.5",
+          "x-vercel-ip-country": "US",
+          "x-vercel-ip-country-region": "CA",
+          "x-vercel-ip-city": "San Francisco"
+        }
+      )
+    );
+
+    await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(supabase.sessionsUpsert.mock.calls[0]?.[0]).not.toHaveProperty("ip_address");
+    expect(supabase.sessionsUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        geo_country: "US",
+        geo_region: "CA",
+        geo_city: "San Francisco"
+      }),
+      { onConflict: "id" }
+    );
+  });
 });
 
 function createEventRequest(body: unknown, headers?: HeadersInit): NextRequest {
@@ -119,4 +152,36 @@ function createEventRequest(body: unknown, headers?: HeadersInit): NextRequest {
     },
     body: JSON.stringify(body)
   });
+}
+
+function createSupabaseMock() {
+  const visitorsUpsert = vi.fn(() => ({
+    select: vi.fn(() => ({
+      single: vi.fn(async () => ({ data: { id: "visitor-row-1" }, error: null }))
+    }))
+  }));
+  const sessionsUpsert = vi.fn(() => ({
+    select: vi.fn(() => ({
+      single: vi.fn(async () => ({ data: { id: "session-row-1" }, error: null }))
+    }))
+  }));
+  const eventsInsert = vi.fn(async () => ({ error: null }));
+
+  return {
+    client: {
+      from: vi.fn((table: string) => {
+        if (table === "visitors") {
+          return { upsert: visitorsUpsert };
+        }
+        if (table === "sessions") {
+          return { upsert: sessionsUpsert };
+        }
+        if (table === "events") {
+          return { insert: eventsInsert };
+        }
+        throw new Error(`Unexpected table: ${table}`);
+      })
+    } as ReturnType<typeof createSupabaseAdminClient>,
+    sessionsUpsert
+  };
 }

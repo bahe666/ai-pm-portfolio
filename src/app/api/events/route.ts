@@ -20,7 +20,6 @@ type RequestAttribution = {
   geoCity: string | null;
   geoCountry: string | null;
   geoRegion: string | null;
-  ipAddress: string | null;
   referrer: string | null;
   sourceHint: string;
 };
@@ -146,7 +145,6 @@ async function ingestEvents(job: EventIngestionJob): Promise<void> {
           visitor_id: visitor.id,
           campaign_id: campaignId,
           referrer: job.attribution.referrer,
-          ip_address: job.attribution.ipAddress,
           geo_country: job.attribution.geoCountry,
           geo_region: job.attribution.geoRegion,
           geo_city: job.attribution.geoCity,
@@ -220,19 +218,9 @@ function getRequestAttribution(request: NextRequest, campaignSlug: string | null
     geoCity,
     geoCountry,
     geoRegion,
-    ipAddress: getIpAddress(request),
     referrer,
     sourceHint: getSourceHint(campaignSlug, referrer)
   };
-}
-
-function getIpAddress(request: NextRequest): string | null {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0]?.trim() || null;
-  }
-
-  return request.headers.get("x-real-ip");
 }
 
 function getSourceHint(campaignSlug: string | null, referrer: string | null): string {

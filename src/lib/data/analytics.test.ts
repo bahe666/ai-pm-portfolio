@@ -245,7 +245,6 @@ function session(id: string, campaignId: string | null, startedAt: string): Anal
     visitorId: `visitor-${id}`,
     campaignId,
     referrer: null,
-    ipAddress: null,
     geoCountry: null,
     geoRegion: null,
     geoCity: null,
