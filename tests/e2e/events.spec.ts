@@ -35,7 +35,7 @@ test("homepage sends page view, impressions and project click events without low
     .poll(() => getCapturedEvents(requests).some((event) => event.eventType === "page_view"))
     .toBe(true);
 
-  await page.locator(".project-card").first().scrollIntoViewIfNeeded();
+  await page.locator(".project-experience").first().scrollIntoViewIfNeeded();
 
   await expect
     .poll(() => getCapturedEvents(requests).some((event) => event.eventType === "project_impression"))
