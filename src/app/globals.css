@@ -1076,6 +1076,15 @@ select {
   background: var(--blue);
 }
 
+.admin-button--danger {
+  border-color: color-mix(in srgb, var(--accent) 56%, var(--line));
+  background: color-mix(in srgb, var(--accent) 84%, var(--ink));
+}
+
+.admin-button--danger:hover {
+  background: var(--accent);
+}
+
 .admin-button--link {
   flex: 0 0 auto;
 }
@@ -1167,6 +1176,71 @@ select {
   border-color: color-mix(in srgb, var(--blue) 34%, var(--line));
   background: color-mix(in srgb, var(--blue) 10%, white);
   color: var(--blue);
+}
+
+.admin-project-row > td {
+  padding: 0;
+}
+
+.admin-project-editor {
+  min-width: 0;
+}
+
+.admin-project-editor summary {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.35fr) minmax(180px, 1.6fr) minmax(92px, auto) minmax(72px, auto) minmax(72px, auto) minmax(86px, auto);
+  gap: 12px;
+  align-items: start;
+  cursor: pointer;
+  list-style-position: inside;
+  padding: 12px;
+}
+
+.admin-project-editor summary > * {
+  min-width: 0;
+}
+
+.admin-project-editor summary > span:first-of-type {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-project-editor summary a {
+  width: fit-content;
+}
+
+.admin-project-editor[open] summary {
+  border-bottom: 1px solid rgba(36, 26, 18, 0.22);
+  background: color-mix(in srgb, var(--paper-2) 45%, white);
+}
+
+.admin-project-editor__body {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.admin-form--compact {
+  gap: 12px;
+}
+
+.admin-form--compact textarea {
+  min-height: 92px;
+}
+
+.admin-form--compact .admin-form__mono {
+  min-height: 180px;
+}
+
+.admin-project-editor__actions,
+.admin-project-editor__delete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-project-editor__delete {
+  padding-top: 2px;
 }
 
 .admin-description-list {
@@ -1653,7 +1727,8 @@ select {
 
   .admin-page-header,
   .admin-form__grid,
-  .admin-download {
+  .admin-download,
+  .admin-project-editor summary {
     grid-template-columns: 1fr;
   }
 
@@ -1748,7 +1823,9 @@ select {
   }
 
   .admin-button,
-  .admin-button--link {
+  .admin-button--link,
+  .admin-project-editor__actions,
+  .admin-project-editor__delete {
     width: 100%;
   }
 }

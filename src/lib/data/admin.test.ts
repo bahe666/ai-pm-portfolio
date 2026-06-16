@@ -4,7 +4,9 @@ import {
   CampaignInputSchema,
   ProfileInputSchema,
   ProjectInputSchema,
+  deleteProject,
   getAdminProfile,
+  upsertProject,
   uploadProjectCover
 } from "./admin";
 import { parseAdminProjectFormData } from "./admin-project-input";
@@ -168,6 +170,94 @@ describe("uploadProjectCover", () => {
     expect(objectPath).toMatch(/\.png$/);
     expect(objectPath).not.toMatch(/\.svg$/);
     expect(options).toMatchObject({ contentType: "image/png" });
+  });
+});
+
+describe("upsertProject", () => {
+  it("updates an existing project and returns the updated row", async () => {
+    const updatedRow = {
+      id: "project-1",
+      title: "Updated project",
+      slug: "updated-project",
+      summary: "A concise project summary.",
+      tags: ["AI", "Workflow"],
+      demo_url: "https://example.com/demo",
+      cover_image_url: "/covers/updated-project.png",
+      contribution: "Owned product framing.",
+      ai_usage: "Used AI for synthesis.",
+      decisions: "Kept scope small.",
+      reflection: "Validated the workflow.",
+      prd_markdown: "# PRD",
+      status: "published",
+      is_featured: true,
+      sort_order: 7,
+      analytics_enabled: false,
+      created_at: "2026-06-12T00:00:00.000Z",
+      updated_at: "2026-06-13T00:00:00.000Z"
+    };
+    const single = vi.fn().mockResolvedValue({ data: updatedRow, error: null });
+    const select = vi.fn(() => ({ single }));
+    const eq = vi.fn(() => ({ select }));
+    const update = vi.fn(() => ({ eq }));
+    supabaseMocks.from.mockReturnValue({ update });
+
+    const project = await upsertProject(
+      {
+        title: "Updated project",
+        slug: "updated-project",
+        summary: "A concise project summary.",
+        tags: ["AI", "Workflow"],
+        demoUrl: "https://example.com/demo",
+        coverImageUrl: "/covers/updated-project.png",
+        contribution: "Owned product framing.",
+        aiUsage: "Used AI for synthesis.",
+        decisions: "Kept scope small.",
+        reflection: "Validated the workflow.",
+        prdMarkdown: "# PRD",
+        status: "published",
+        isFeatured: true,
+        sortOrder: 7,
+        analyticsEnabled: false
+      },
+      "project-1"
+    );
+
+    expect(supabaseMocks.from).toHaveBeenCalledWith("projects");
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Updated project",
+        slug: "updated-project",
+        status: "published",
+        is_featured: true,
+        sort_order: 7,
+        updated_at: expect.any(String)
+      })
+    );
+    expect(eq).toHaveBeenCalledWith("id", "project-1");
+    expect(select).toHaveBeenCalledWith("*");
+    expect(single).toHaveBeenCalled();
+    expect(project).toMatchObject({
+      id: "project-1",
+      title: "Updated project",
+      slug: "updated-project",
+      status: "published",
+      isFeatured: true,
+      sortOrder: 7
+    });
+  });
+});
+
+describe("deleteProject", () => {
+  it("deletes the project row by id", async () => {
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const deleteMock = vi.fn(() => ({ eq }));
+    supabaseMocks.from.mockReturnValue({ delete: deleteMock });
+
+    await deleteProject("project-1");
+
+    expect(supabaseMocks.from).toHaveBeenCalledWith("projects");
+    expect(deleteMock).toHaveBeenCalled();
+    expect(eq).toHaveBeenCalledWith("id", "project-1");
   });
 });
 

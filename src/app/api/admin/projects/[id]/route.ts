@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/admin";
 import { deleteProject, upsertProject } from "@/lib/data/admin";
 import { isAdminProjectInputError, readAdminProjectInput } from "@/lib/data/admin-project-input";
@@ -16,6 +17,7 @@ export async function PUT(request: NextRequest, { params }: ProjectRouteContext)
   try {
     const input = await readAdminProjectInput(request);
     const project = await upsertProject(input, id);
+    revalidateProjectSurfaces(project.slug);
     return NextResponse.json({ project });
   } catch (error) {
     if (isAdminProjectInputError(error)) {
@@ -30,5 +32,13 @@ export async function DELETE(_request: NextRequest, { params }: ProjectRouteCont
   await requireAdmin();
   const { id } = await params;
   await deleteProject(id);
+  revalidateProjectSurfaces();
   return NextResponse.json({ ok: true });
+}
+
+function revalidateProjectSurfaces(projectSlug?: string) {
+  revalidatePath("/");
+  revalidatePath("/admin/projects");
+  revalidatePath("/admin/analytics");
+  if (projectSlug) revalidatePath(`/projects/${projectSlug}`);
 }
