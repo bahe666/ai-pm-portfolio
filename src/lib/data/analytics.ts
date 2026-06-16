@@ -529,12 +529,13 @@ export async function getPaginatedSessions({
   const projects = (projectsResult.data ?? []).map(toProjectFact);
   const total = sessionsResult.count ?? sessions.length;
   const summary = summarizeSessionList(events, sessions, campaigns, projects, {
-    page: normalizedPage,
+    page: 1,
     pageSize: normalizedPageSize
   });
 
   return {
     ...summary,
+    page: normalizedPage,
     total,
     totalPages: total > 0 ? Math.ceil(total / normalizedPageSize) : 0
   };

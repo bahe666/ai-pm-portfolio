@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getPaginatedSessions,
   summarizeCampaignPerformance,
   summarizeFunnel,
   summarizeProjectInterest,
@@ -11,6 +12,18 @@ import {
   type CampaignFact,
   type ProjectFact
 } from "./analytics";
+
+const supabaseMocks = vi.hoisted(() => ({
+  createSupabaseAdminClient: vi.fn()
+}));
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: supabaseMocks.createSupabaseAdminClient
+}));
+
+beforeEach(() => {
+  supabaseMocks.createSupabaseAdminClient.mockReset();
+});
 
 describe("summarizeProjectInterest", () => {
   it("counts project behavior and averages dwell time in seconds", () => {
@@ -290,6 +303,39 @@ describe("session summaries", () => {
     });
   });
 
+  it("does not drop database-paginated sessions when requesting later pages", async () => {
+    supabaseMocks.createSupabaseAdminClient.mockReturnValue(
+      createPaginatedSessionsClient({
+        count: 24,
+        events: [
+          event("page_view", {
+            id: "event-page-2",
+            sessionId: "session-page-2",
+            path: "/v/acme-ai-pm",
+            occurredAt: "2026-06-11T12:00:01.000Z"
+          })
+        ],
+        sessions: [session("session-page-2", null, "2026-06-11T12:00:00.000Z")]
+      }) as never
+    );
+
+    const result = await getPaginatedSessions({ page: 2, pageSize: 12 });
+
+    expect(result).toMatchObject({
+      page: 2,
+      pageSize: 12,
+      total: 24,
+      totalPages: 2,
+      items: [
+        {
+          sessionId: "session-page-2",
+          entryPath: "/v/acme-ai-pm",
+          eventCount: 1
+        }
+      ]
+    });
+  });
+
   it("summarizes session detail with ordered events, unique paths, and duration", () => {
     const detailSession = {
       ...session("session-detail", null, "2026-06-11T12:00:00.000Z"),
@@ -400,5 +446,117 @@ function session(id: string, campaignId: string | null, startedAt: string): Anal
     sourceHint: null,
     startedAt,
     endedAt: null
+  };
+}
+
+function createPaginatedSessionsClient({
+  campaigns = [],
+  count,
+  events = [],
+  projects = [],
+  sessions
+}: {
+  campaigns?: CampaignFact[];
+  count: number;
+  events?: AnalyticsEvent[];
+  projects?: ProjectFact[];
+  sessions: AnalyticsSession[];
+}) {
+  return {
+    from: vi.fn((table: string) => {
+      if (table === "sessions") {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn(() => ({
+              range: vi.fn(async () => ({
+                count,
+                data: sessions.map(toSessionRow),
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+
+      if (table === "events") {
+        return {
+          select: vi.fn(() => ({
+            in: vi.fn(() => ({
+              order: vi.fn(async () => ({
+                data: events.map(toEventRow),
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+
+      if (table === "campaigns") {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn(async () => ({
+              data: campaigns.map((campaign) => ({
+                company: campaign.company,
+                id: campaign.id,
+                role: campaign.role,
+                slug: campaign.slug,
+                tags: campaign.tags
+              })),
+              error: null
+            }))
+          }))
+        };
+      }
+
+      if (table === "projects") {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn(async () => ({
+              data: projects.map((project) => ({
+                id: project.id,
+                slug: project.slug,
+                title: project.title
+              })),
+              error: null
+            }))
+          }))
+        };
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    })
+  };
+}
+
+function toSessionRow(value: AnalyticsSession) {
+  return {
+    campaign_id: value.campaignId,
+    ended_at: value.endedAt,
+    geo_city: value.geoCity,
+    geo_country: value.geoCountry,
+    geo_region: value.geoRegion,
+    id: value.id,
+    referrer: value.referrer,
+    source_hint: value.sourceHint,
+    started_at: value.startedAt,
+    visitor_id: value.visitorId
+  };
+}
+
+function toEventRow(value: AnalyticsEvent) {
+  return {
+    campaign_id: value.campaignId,
+    duration_ms: value.durationMs,
+    event_type: value.eventType,
+    id: value.id,
+    metadata: value.metadata,
+    occurred_at: value.occurredAt,
+    path: value.path,
+    project_id: value.projectId,
+    scroll_depth: value.scrollDepth,
+    section_id: value.sectionId,
+    session_id: value.sessionId,
+    target_url: value.targetUrl,
+    visitor_id: value.visitorId
   };
 }
