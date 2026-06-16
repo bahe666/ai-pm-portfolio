@@ -84,6 +84,13 @@ export type CampaignSummary = {
   tagPreferences: TagPreference[];
 };
 
+export type DataVolumeSummary = {
+  projects: number;
+  campaigns: number;
+  sessions: number;
+  events: number;
+};
+
 export type PrdSectionInterest = {
   sectionId: string;
   views: number;
@@ -158,6 +165,7 @@ export type AnalyticsDashboardData = {
     demoClicks: number;
     projectDetailViews: number;
   };
+  dataVolume: DataVolumeSummary;
   projectInterest: ProjectInterest[];
   funnel: FunnelStep[];
   campaignSummary: CampaignSummary;
@@ -181,6 +189,12 @@ export const EMPTY_DASHBOARD: AnalyticsDashboardData = {
     campaignSessions: 0,
     demoClicks: 0,
     projectDetailViews: 0
+  },
+  dataVolume: {
+    projects: 0,
+    campaigns: 0,
+    sessions: 0,
+    events: 0
   },
   projectInterest: [],
   funnel: FUNNEL_STEPS.map((step) => ({ ...step })),
@@ -438,17 +452,20 @@ export async function getAnalyticsDashboard(): Promise<AnalyticsDashboardData> {
     supabase
       .from("events")
       .select(
-        "id,session_id,visitor_id,campaign_id,event_type,project_id,path,target_url,section_id,duration_ms,scroll_depth,metadata,occurred_at"
+        "id,session_id,visitor_id,campaign_id,event_type,project_id,path,target_url,section_id,duration_ms,scroll_depth,metadata,occurred_at",
+        { count: "exact" }
       )
       .order("occurred_at", { ascending: false })
       .limit(1200),
     supabase
       .from("sessions")
-      .select("id,visitor_id,campaign_id,referrer,geo_country,geo_region,geo_city,source_hint,started_at,ended_at")
+      .select("id,visitor_id,campaign_id,referrer,geo_country,geo_region,geo_city,source_hint,started_at,ended_at", {
+        count: "exact"
+      })
       .order("started_at", { ascending: false })
       .limit(300),
-    supabase.from("campaigns").select("id,company,role,tags,slug").order("created_at", { ascending: false }),
-    supabase.from("projects").select("id,title,slug").order("sort_order", { ascending: true })
+    supabase.from("campaigns").select("id,company,role,tags,slug", { count: "exact" }).order("created_at", { ascending: false }),
+    supabase.from("projects").select("id,title,slug", { count: "exact" }).order("sort_order", { ascending: true })
   ]);
 
   if (eventsResult.error) throw eventsResult.error;
@@ -460,15 +477,23 @@ export async function getAnalyticsDashboard(): Promise<AnalyticsDashboardData> {
   const sessions = (sessionsResult.data ?? []).map(toAnalyticsSession);
   const campaigns = (campaignsResult.data ?? []).map(toCampaignFact);
   const projects = (projectsResult.data ?? []).map(toProjectFact);
+  const totalEvents = eventsResult.count ?? events.length;
+  const totalSessions = sessionsResult.count ?? sessions.length;
 
   return {
     kpis: {
-      totalSessions: sessions.length,
+      totalSessions,
       totalVisitors: new Set(sessions.map((session) => session.visitorId)).size,
-      totalEvents: events.length,
+      totalEvents,
       campaignSessions: sessions.filter((session) => session.campaignId).length,
       demoClicks: events.filter((event) => event.eventType === "demo_click" || event.eventType === "external_link_click").length,
       projectDetailViews: events.filter((event) => isProjectDetailEvent(event.eventType)).length
+    },
+    dataVolume: {
+      projects: projectsResult.count ?? projects.length,
+      campaigns: campaignsResult.count ?? campaigns.length,
+      sessions: totalSessions,
+      events: totalEvents
     },
     projectInterest: summarizeProjectInterest(events, projects),
     funnel: summarizeFunnel(events),

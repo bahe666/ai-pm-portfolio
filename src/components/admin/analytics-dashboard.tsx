@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, BarChart3, Clock3, MousePointerClick, Route, Tags } from "lucide-react";
+import { Activity, BarChart3, Clock3, Database, MousePointerClick, Route, Tags } from "lucide-react";
 import type { AnalyticsDashboardData, FunnelStep, PaginatedSessions } from "@/lib/data/analytics";
 
 export function AnalyticsDashboard({
@@ -37,6 +37,23 @@ export function AnalyticsDashboard({
         </p>
       ) : null}
 
+      <section className="analytics-volume-strip" aria-labelledby="data-volume-title">
+        <div>
+          <div className="analytics-volume-strip__title">
+            <Database aria-hidden="true" size={18} />
+            <p className="eyebrow">Data Source</p>
+          </div>
+          <h2 id="data-volume-title">当前真实数据量</h2>
+          <p>来自 Supabase 表记录数，用来判断当前样本是否足够支撑判断。</p>
+        </div>
+        <dl className="analytics-volume-grid">
+          <VolumeMetric label="项目数据" value={data.dataVolume.projects} />
+          <VolumeMetric label="投递链接" value={data.dataVolume.campaigns} />
+          <VolumeMetric label="会话记录" value={data.dataVolume.sessions} />
+          <VolumeMetric label="事件记录" value={data.dataVolume.events} />
+        </dl>
+      </section>
+
       <section className="admin-card" aria-labelledby="project-interest-title">
         <div className="admin-section-heading">
           <div>
@@ -71,7 +88,9 @@ export function AnalyticsDashboard({
                   <td>{formatSeconds(project.averageDwellSeconds)}</td>
                 </tr>
               ))}
-              {data.projectInterest.length === 0 ? <EmptyRow colSpan={6} label="暂无项目行为事件。" /> : null}
+              {data.projectInterest.length === 0 ? (
+                <EmptyRow colSpan={6} label="暂无项目详情访问。等有访客进入项目、阅读 PRD 或点击 Demo 后，这里会显示真实兴趣排序。" />
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -111,7 +130,9 @@ export function AnalyticsDashboard({
                     <td>{formatDateTime(campaign.lastSeenAt)}</td>
                   </tr>
                 ))}
-                {data.campaignSummary.campaigns.length === 0 ? <EmptyRow colSpan={5} label="暂无投递链接数据。" /> : null}
+                {data.campaignSummary.campaigns.length === 0 ? (
+                  <EmptyRow colSpan={5} label="暂无投递链接访问。创建专属链接并被打开后，这里会显示公司/岗位对比。" />
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -134,7 +155,9 @@ export function AnalyticsDashboard({
                 <span>{tag.demoClicks} Demo</span>
               </div>
             ))}
-            {data.campaignSummary.tagPreferences.length === 0 ? <EmptyState label="暂无标签访问数据。" /> : null}
+            {data.campaignSummary.tagPreferences.length === 0 ? (
+              <EmptyState label="暂无 JD 标签偏好。带标签的投递链接产生访问后，这里会出现真实统计。" />
+            ) : null}
           </div>
         </section>
       </div>
@@ -182,7 +205,9 @@ export function AnalyticsDashboard({
                     <td>{formatSeconds(section.averageDwellSeconds)}</td>
                   </tr>
                 ))}
-                {data.prdSectionInterest.length === 0 ? <EmptyRow colSpan={3} label="暂无 PRD 小节数据。" /> : null}
+                {data.prdSectionInterest.length === 0 ? (
+                  <EmptyRow colSpan={3} label="暂无 PRD 阅读事件。访客打开并阅读 PRD 后，这里会显示小节兴趣。" />
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -263,6 +288,15 @@ function Metric({ label, value }: { label: string; value: number }) {
 
 function NumberCell({ value }: { value: number }) {
   return <td className="analytics-number">{value}</td>;
+}
+
+function VolumeMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
 }
 
 function EmptyRow({ colSpan, label }: { colSpan: number; label: string }) {

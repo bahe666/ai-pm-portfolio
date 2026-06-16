@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getPaginatedSessions,
+  getAnalyticsDashboard,
   summarizeCampaignPerformance,
   summarizeFunnel,
   summarizeProjectInterest,
@@ -412,6 +413,34 @@ describe("session summaries", () => {
   });
 });
 
+describe("getAnalyticsDashboard", () => {
+  it("uses exact Supabase counts for data volume", async () => {
+    supabaseMocks.createSupabaseAdminClient.mockReturnValue(
+      createDashboardClient({
+        campaigns: [{ id: "campaign-a", company: "Acme", role: "AI PM", tags: ["Agent"], slug: "acme-ai-pm" }],
+        campaignCount: 3,
+        events: [event("page_view"), event("demo_click")],
+        eventCount: 1250,
+        projects: [{ id: "project-a", title: "Agent Demo", slug: "agent-demo" }],
+        projectCount: 5,
+        sessions: [session("session-1", "campaign-a", "2026-06-11T10:00:00.000Z")],
+        sessionCount: 301
+      }) as never
+    );
+
+    const data = await getAnalyticsDashboard();
+
+    expect(data.dataVolume).toEqual({
+      campaigns: 3,
+      events: 1250,
+      projects: 5,
+      sessions: 301
+    });
+    expect(data.kpis.totalEvents).toBe(1250);
+    expect(data.kpis.totalSessions).toBe(301);
+  });
+});
+
 function event(
   eventType: AnalyticsEvent["eventType"],
   overrides: Partial<AnalyticsEvent> = {}
@@ -512,6 +541,94 @@ function createPaginatedSessionsClient({
         return {
           select: vi.fn(() => ({
             order: vi.fn(async () => ({
+              data: projects.map((project) => ({
+                id: project.id,
+                slug: project.slug,
+                title: project.title
+              })),
+              error: null
+            }))
+          }))
+        };
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    })
+  };
+}
+
+function createDashboardClient({
+  campaigns,
+  campaignCount,
+  events,
+  eventCount,
+  projects,
+  projectCount,
+  sessions,
+  sessionCount
+}: {
+  campaigns: CampaignFact[];
+  campaignCount: number;
+  events: AnalyticsEvent[];
+  eventCount: number;
+  projects: ProjectFact[];
+  projectCount: number;
+  sessions: AnalyticsSession[];
+  sessionCount: number;
+}) {
+  return {
+    from: vi.fn((table: string) => {
+      if (table === "events") {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn(() => ({
+              limit: vi.fn(async () => ({
+                count: eventCount,
+                data: events.map(toEventRow),
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+
+      if (table === "sessions") {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn(() => ({
+              limit: vi.fn(async () => ({
+                count: sessionCount,
+                data: sessions.map(toSessionRow),
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+
+      if (table === "campaigns") {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn(async () => ({
+              count: campaignCount,
+              data: campaigns.map((campaign) => ({
+                company: campaign.company,
+                id: campaign.id,
+                role: campaign.role,
+                slug: campaign.slug,
+                tags: campaign.tags
+              })),
+              error: null
+            }))
+          }))
+        };
+      }
+
+      if (table === "projects") {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn(async () => ({
+              count: projectCount,
               data: projects.map((project) => ({
                 id: project.id,
                 slug: project.slug,

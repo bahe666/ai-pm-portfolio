@@ -1314,6 +1314,76 @@ select {
   grid-template-columns: repeat(3, minmax(108px, 1fr));
 }
 
+.analytics-volume-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.85fr);
+  align-items: center;
+  gap: 18px;
+  border-block: 1px solid rgba(36, 26, 18, 0.28);
+  background: rgba(255, 252, 246, 0.68);
+  padding: 16px 2px;
+}
+
+.analytics-volume-strip__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+}
+
+.analytics-volume-strip__title .eyebrow,
+.analytics-volume-strip h2,
+.analytics-volume-strip p,
+.analytics-volume-grid {
+  margin: 0;
+}
+
+.analytics-volume-strip h2 {
+  margin-top: 5px;
+  font-size: 1.15rem;
+}
+
+.analytics-volume-strip > div > p:not(.eyebrow) {
+  margin-top: 6px;
+  color: var(--muted);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.analytics-volume-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-left: 1px solid rgba(36, 26, 18, 0.22);
+}
+
+.analytics-volume-grid div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border-right: 1px solid rgba(36, 26, 18, 0.22);
+  padding: 2px 13px;
+}
+
+.analytics-volume-grid dt,
+.analytics-volume-grid dd {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.analytics-volume-grid dt {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.analytics-volume-grid dd {
+  color: var(--ink);
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .analytics-split {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
@@ -1776,9 +1846,21 @@ select {
   }
 
   .analytics-split,
+  .analytics-volume-strip,
   .session-detail__meta,
   .analytics-session__meta {
     grid-template-columns: 1fr;
+  }
+
+  .analytics-volume-grid {
+    border-left: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analytics-volume-grid div {
+    border-right: 0;
+    border-top: 1px solid rgba(36, 26, 18, 0.2);
+    padding: 12px 0 0;
   }
 
   .session-timeline li {
@@ -1848,6 +1930,7 @@ select {
   }
 
   .admin-kpi-grid,
+  .analytics-volume-grid,
   .admin-description-list > div {
     grid-template-columns: 1fr;
   }
