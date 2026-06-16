@@ -12,7 +12,7 @@ type ProjectDetailTrackerProps = {
 export function ProjectDetailTracker({ projectId, projectSlug, projectTitle }: ProjectDetailTrackerProps) {
   useEffect(() => {
     trackEvent({
-      eventType: "project_detail_view",
+      eventType: "project_detail_open",
       projectId,
       metadata: {
         projectSlug,

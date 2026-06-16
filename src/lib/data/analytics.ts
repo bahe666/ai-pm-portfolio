@@ -158,10 +158,10 @@ export function summarizeProjectInterest(events: AnalyticsEvent[], projects: Pro
     const summary = getProjectInterestSummary(summaries, event.projectId, fact);
 
     if (event.eventType === "project_impression") summary.impressions += 1;
-    if (event.eventType === "project_detail_view") summary.detailViews += 1;
-    if (event.eventType === "prd_full_view" || event.eventType === "prd_section_view") summary.prdDeepReads += 1;
+    if (isProjectDetailEvent(event.eventType)) summary.detailViews += 1;
+    if (isPrdReadEvent(event.eventType)) summary.prdDeepReads += 1;
     if (event.eventType === "demo_click" || event.eventType === "external_link_click") summary.demoClicks += 1;
-    if (event.eventType === "section_dwell" && typeof event.durationMs === "number") {
+    if (isDwellEvent(event.eventType) && typeof event.durationMs === "number") {
       summary.dwellTotalMs += event.durationMs;
       summary.dwellCount += 1;
     }
@@ -200,12 +200,9 @@ export function summarizeFunnel(events: AnalyticsEvent[]): FunnelStep[] {
 
 function funnelStepForEvent(eventType: EventType): FunnelStep["key"] | null {
   if (eventType === "demo_click" || eventType === "external_link_click") return "demo_click";
-  if (
-    eventType === "page_view" ||
-    eventType === "project_impression" ||
-    eventType === "project_detail_view" ||
-    eventType === "prd_full_view"
-  ) {
+  if (eventType === "project_detail_open" || eventType === "project_detail_view") return "project_detail_view";
+  if (eventType === "prd_read" || eventType === "prd_full_view") return "prd_full_view";
+  if (eventType === "page_view" || eventType === "project_impression") {
     return eventType;
   }
   return null;
@@ -231,7 +228,7 @@ export function summarizeCampaignPerformance(
         slug: campaign.slug,
         tags: campaign.tags,
         sessions: campaignSessions.length,
-        projectDetailViews: campaignEvents.filter((event) => event.eventType === "project_detail_view").length,
+        projectDetailViews: campaignEvents.filter((event) => isProjectDetailEvent(event.eventType)).length,
         demoClicks: campaignEvents.filter((event) => event.eventType === "demo_click" || event.eventType === "external_link_click").length,
         lastSeenAt: getLastSeenAt(campaignSessions)
       };
@@ -271,7 +268,7 @@ export function summarizePrdSectionInterest(events: AnalyticsEvent[]): PrdSectio
     };
 
     if (event.eventType === "prd_section_view") summary.views += 1;
-    if (event.eventType === "section_dwell" && typeof event.durationMs === "number") {
+    if (isDwellEvent(event.eventType) && typeof event.durationMs === "number") {
       summary.dwellTotalMs += event.durationMs;
       summary.dwellCount += 1;
     }
@@ -373,7 +370,7 @@ export async function getAnalyticsDashboard(): Promise<AnalyticsDashboardData> {
       totalEvents: events.length,
       campaignSessions: sessions.filter((session) => session.campaignId).length,
       demoClicks: events.filter((event) => event.eventType === "demo_click" || event.eventType === "external_link_click").length,
-      projectDetailViews: events.filter((event) => event.eventType === "project_detail_view").length
+      projectDetailViews: events.filter((event) => isProjectDetailEvent(event.eventType)).length
     },
     projectInterest: summarizeProjectInterest(events, projects),
     funnel: summarizeFunnel(events),
@@ -405,6 +402,23 @@ function getProjectInterestSummary(
   };
   summaries.set(projectId, summary);
   return summary;
+}
+
+function isProjectDetailEvent(eventType: EventType) {
+  return eventType === "project_detail_open" || eventType === "project_detail_view";
+}
+
+function isPrdReadEvent(eventType: EventType) {
+  return (
+    eventType === "prd_open" ||
+    eventType === "prd_read" ||
+    eventType === "prd_full_view" ||
+    eventType === "prd_section_view"
+  );
+}
+
+function isDwellEvent(eventType: EventType) {
+  return eventType === "project_dwell" || eventType === "section_dwell";
 }
 
 function groupEventsByCampaign(events: AnalyticsEvent[]) {

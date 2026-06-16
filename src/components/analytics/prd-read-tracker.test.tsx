@@ -58,7 +58,7 @@ describe("PrdReadTracker", () => {
     vi.useRealTimers();
   });
 
-  it("falls back to immediate prd_full_view when IntersectionObserver is unavailable", () => {
+  it("falls back to immediate prd_read when IntersectionObserver is unavailable", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
 
     const { unmount } = render(
@@ -70,16 +70,21 @@ describe("PrdReadTracker", () => {
       />
     );
 
-    expect(trackEventMock).toHaveBeenCalledTimes(1);
-    expect(trackEventMock).toHaveBeenCalledWith({
-      eventType: "prd_full_view",
+    expect(trackEventMock).toHaveBeenCalledTimes(2);
+    expect(trackEventMock).toHaveBeenNthCalledWith(1, {
+      eventType: "prd_open",
+      projectId: "project-1",
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
+    expect(trackEventMock).toHaveBeenNthCalledWith(2, {
+      eventType: "prd_read",
       projectId: "project-1",
       metadata: { projectSlug: "project-one", projectTitle: "Project One" }
     });
 
     unmount();
 
-    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledTimes(2);
   });
 
   it("tracks full PRD only after the PRD sentinel enters the viewport", () => {
@@ -94,13 +99,18 @@ describe("PrdReadTracker", () => {
     const sentinel = container.querySelector("[data-prd-read-sentinel]");
 
     expect(sentinel).toBeInTheDocument();
-    expect(trackEventMock).not.toHaveBeenCalled();
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith({
+      eventType: "prd_open",
+      projectId: "project-1",
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
 
     sentinelObserver().enter(sentinel as Element);
 
-    expect(trackEventMock).toHaveBeenCalledTimes(1);
-    expect(trackEventMock).toHaveBeenCalledWith({
-      eventType: "prd_full_view",
+    expect(trackEventMock).toHaveBeenCalledTimes(2);
+    expect(trackEventMock).toHaveBeenLastCalledWith({
+      eventType: "prd_read",
       projectId: "project-1",
       metadata: { projectSlug: "project-one", projectTitle: "Project One" }
     });
@@ -124,13 +134,18 @@ describe("PrdReadTracker", () => {
     const heading = document.getElementById("overview");
 
     expect(heading).toBeInTheDocument();
-    expect(trackEventMock).not.toHaveBeenCalled();
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith({
+      eventType: "prd_open",
+      projectId: "project-1",
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
 
     vi.setSystemTime(new Date("2026-06-12T10:00:03.000Z"));
     headingObserver().enter(heading as Element);
 
-    expect(trackEventMock).toHaveBeenCalledTimes(1);
-    expect(trackEventMock).toHaveBeenCalledWith({
+    expect(trackEventMock).toHaveBeenCalledTimes(2);
+    expect(trackEventMock).toHaveBeenLastCalledWith({
       eventType: "prd_section_view",
       projectId: "project-1",
       sectionId: "overview",
@@ -141,7 +156,7 @@ describe("PrdReadTracker", () => {
     unmount();
 
     expect(trackEventMock).toHaveBeenCalledWith({
-      eventType: "section_dwell",
+      eventType: "project_dwell",
       projectId: "project-1",
       sectionId: "overview",
       durationMs: 7_500,
@@ -164,7 +179,12 @@ describe("PrdReadTracker", () => {
 
     unmount();
 
-    expect(trackEventMock).not.toHaveBeenCalled();
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith({
+      eventType: "prd_open",
+      projectId: "project-1",
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
   });
 
   it("records dwell when active sections change and updates active state for revisits", () => {
@@ -189,9 +209,16 @@ describe("PrdReadTracker", () => {
     const sectionA = document.getElementById("section-a") as Element;
     const sectionB = document.getElementById("section-b") as Element;
 
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith({
+      eventType: "prd_open",
+      projectId: "project-1",
+      metadata: { projectSlug: "project-one", projectTitle: "Project One" }
+    });
+
     headingObserver("section-a").enter(sectionA);
 
-    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledTimes(2);
     expect(trackEventMock).toHaveBeenLastCalledWith({
       eventType: "prd_section_view",
       projectId: "project-1",
@@ -202,14 +229,14 @@ describe("PrdReadTracker", () => {
     vi.setSystemTime(new Date("2026-06-12T10:00:04.000Z"));
     headingObserver("section-b").enter(sectionB);
 
-    expect(trackEventMock).toHaveBeenNthCalledWith(2, {
-      eventType: "section_dwell",
+    expect(trackEventMock).toHaveBeenNthCalledWith(3, {
+      eventType: "project_dwell",
       projectId: "project-1",
       sectionId: "section-a",
       durationMs: 4_000,
       metadata: { projectSlug: "project-one", projectTitle: "Project One" }
     });
-    expect(trackEventMock).toHaveBeenNthCalledWith(3, {
+    expect(trackEventMock).toHaveBeenNthCalledWith(4, {
       eventType: "prd_section_view",
       projectId: "project-1",
       sectionId: "section-b",
@@ -219,9 +246,9 @@ describe("PrdReadTracker", () => {
     vi.setSystemTime(new Date("2026-06-12T10:00:09.000Z"));
     headingObserver("section-a").enter(sectionA);
 
-    expect(trackEventMock).toHaveBeenCalledTimes(4);
+    expect(trackEventMock).toHaveBeenCalledTimes(5);
     expect(trackEventMock).toHaveBeenLastCalledWith({
-      eventType: "section_dwell",
+      eventType: "project_dwell",
       projectId: "project-1",
       sectionId: "section-b",
       durationMs: 5_000,
@@ -231,9 +258,9 @@ describe("PrdReadTracker", () => {
     vi.setSystemTime(new Date("2026-06-12T10:00:11.500Z"));
     unmount();
 
-    expect(trackEventMock).toHaveBeenCalledTimes(5);
+    expect(trackEventMock).toHaveBeenCalledTimes(6);
     expect(trackEventMock).toHaveBeenLastCalledWith({
-      eventType: "section_dwell",
+      eventType: "project_dwell",
       projectId: "project-1",
       sectionId: "section-a",
       durationMs: 2_500,

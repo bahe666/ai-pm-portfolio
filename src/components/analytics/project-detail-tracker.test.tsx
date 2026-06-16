@@ -17,7 +17,7 @@ describe("ProjectDetailTracker", () => {
     render(<ProjectDetailTracker projectId="project-1" projectSlug="project-one" projectTitle="Project One" />);
 
     expect(trackEventMock).toHaveBeenCalledWith({
-      eventType: "project_detail_view",
+      eventType: "project_detail_open",
       projectId: "project-1",
       metadata: { projectSlug: "project-one", projectTitle: "Project One" }
     });

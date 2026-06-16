@@ -23,6 +23,12 @@ export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle 
     hasTrackedFullViewRef.current = false;
 
     const metadata = { projectSlug, projectTitle };
+    trackEvent({
+      eventType: "prd_open",
+      projectId,
+      metadata
+    });
+
     const flushActiveSection = () => {
       const activeSection = activeSectionRef.current;
       if (!activeSection) return;
@@ -35,7 +41,7 @@ export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle 
       if (!hasTrackedFullViewRef.current) {
         hasTrackedFullViewRef.current = true;
         trackEvent({
-          eventType: "prd_full_view",
+          eventType: "prd_read",
           projectId,
           metadata
         });
@@ -55,7 +61,7 @@ export function PrdReadTracker({ headings, projectId, projectSlug, projectTitle 
 
           hasTrackedFullViewRef.current = true;
           trackEvent({
-            eventType: "prd_full_view",
+            eventType: "prd_read",
             projectId,
             metadata
           });
@@ -147,7 +153,7 @@ function trackDwell(
   const durationMs = Math.min(Math.max(Date.now() - startedAt, 0), MAX_DWELL_MS);
 
   trackEvent({
-    eventType: "section_dwell",
+    eventType: "project_dwell",
     projectId,
     sectionId,
     durationMs,

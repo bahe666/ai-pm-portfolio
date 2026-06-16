@@ -51,6 +51,24 @@ describe("summarizeProjectInterest", () => {
     ]);
   });
 
+  it("counts canonical project and PRD events while keeping legacy events compatible", () => {
+    const events = [
+      event("project_detail_open", { projectId: "project-a" }),
+      event("project_detail_view", { projectId: "project-a" }),
+      event("prd_open", { projectId: "project-a" }),
+      event("prd_read", { projectId: "project-a" }),
+      event("prd_full_view", { projectId: "project-a" }),
+      event("project_dwell", { projectId: "project-a", durationMs: 9000 })
+    ] satisfies AnalyticsEvent[];
+
+    expect(summarizeProjectInterest(events)[0]).toMatchObject({
+      projectId: "project-a",
+      detailViews: 2,
+      prdDeepReads: 3,
+      averageDwellSeconds: 9
+    });
+  });
+
   it("ignores legacy project_expand events without crashing", () => {
     const events = [
       event("project_expand", { projectId: "project-a" }),

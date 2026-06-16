@@ -53,12 +53,12 @@ test("homepage sends page view, impressions and project click events without low
   await page.getByRole("link", { name: "阅读详情" }).first().click();
 
   await expect
-    .poll(() => getCapturedEvents(requests).some((event) => event.eventType === "project_detail_view"))
+    .poll(() => getCapturedEvents(requests).some((event) => event.eventType === "project_detail_open"))
     .toBe(true);
 
   const importantEvents = getCapturedEvents(requests).filter((event) =>
     typeof event.eventType === "string" &&
-    ["page_view", "project_impression", "demo_click", "project_detail_view"].includes(event.eventType)
+    ["page_view", "project_impression", "demo_click", "project_detail_open"].includes(event.eventType)
   );
 
   expect(importantEvents.length).toBeGreaterThanOrEqual(4);
