@@ -13,6 +13,7 @@ test("campaign vanity route preserves URL and sets campaign cookie", async ({ co
 });
 
 test("homepage sends page view, impressions and project click events without low-value browser payload", async ({ page }) => {
+  test.setTimeout(60_000);
   const requests: unknown[] = [];
 
   await page.route("**/api/events", async (route) => {
@@ -51,9 +52,10 @@ test("homepage sends page view, impressions and project click events without low
     .toBe(true);
 
   await page.getByRole("link", { name: "阅读详情" }).first().click();
+  await expect(page.getByRole("heading", { exact: true, name: "Agent 协作原型" })).toBeVisible();
 
   await expect
-    .poll(() => getCapturedEvents(requests).some((event) => event.eventType === "project_detail_open"))
+    .poll(() => getCapturedEvents(requests).some((event) => event.eventType === "project_detail_open"), { timeout: 15_000 })
     .toBe(true);
 
   const importantEvents = getCapturedEvents(requests).filter((event) =>

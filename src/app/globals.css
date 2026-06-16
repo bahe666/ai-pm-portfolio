@@ -212,7 +212,6 @@ select {
   transition: color 160ms ease;
 }
 
-.capability-section,
 .project-section,
 .resume-evidence,
 .prd-section {
@@ -228,38 +227,6 @@ select {
 
 .section-heading h2 {
   font-size: clamp(1.8rem, 4vw, 3rem);
-}
-
-.capability-steps {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 1px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border: 1px solid var(--line);
-  background: var(--line);
-}
-
-.capability-steps li {
-  display: grid;
-  min-height: 122px;
-  align-content: space-between;
-  gap: 18px;
-  min-width: 0;
-  background: var(--surface);
-  padding: 16px;
-}
-
-.capability-steps span {
-  color: var(--olive);
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.capability-steps strong {
-  overflow-wrap: anywhere;
-  font-size: 1.05rem;
 }
 
 .project-experience-list {
@@ -1773,7 +1740,6 @@ select {
     border-top: 4px solid var(--accent);
   }
 
-  .capability-steps,
   .resume-evidence__grid {
     grid-template-columns: 1fr;
   }

@@ -6,7 +6,7 @@ import { getPublicProfile, getPublishedProjects } from "@/lib/data/public";
 
 export const dynamic = "force-dynamic";
 
-const abilityChain = ["场景识别", "问题定义", "AI 原型", "PRD 表达", "协作复盘"];
+const abilityTags = ["场景拆解", "AI 边界判断", "原型验证", "PRD 与验收", "跨团队协作"];
 
 export default async function HomePage() {
   const [profile, projects] = await Promise.all([getPublicProfile(), getPublishedProjects()]);
@@ -23,8 +23,8 @@ export default async function HomePage() {
           <p className="hero__headline">{profile.headline}</p>
           <p className="hero__intro">{profile.intro}</p>
 
-          <div className="ability-chain" aria-label="能力链">
-            {abilityChain.map((ability) => (
+          <div className="ability-chain" aria-label="AI 产品能力标签">
+            {abilityTags.map((ability) => (
               <span key={ability}>{ability}</span>
             ))}
           </div>
@@ -49,25 +49,9 @@ export default async function HomePage() {
         </aside>
       </section>
 
-      <section className="capability-section" aria-labelledby="capability-title">
-        <div className="section-heading">
-          <p>How I Work</p>
-          <h2 id="capability-title">能力链</h2>
-          <span>我更关注从需求到证据的闭环，而不是只展示一个看起来完成的页面。</span>
-        </div>
-        <ol className="capability-steps">
-          {abilityChain.map((ability, index) => (
-            <li key={ability}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <strong>{ability}</strong>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <ResumeEvidence profile={profile} projectCount={projects.filter((project) => project.status === "published").length} />
 
       <ProjectGrid projects={projects} />
-
-      <ResumeEvidence profile={profile} />
 
       <SiteFooter />
     </main>
