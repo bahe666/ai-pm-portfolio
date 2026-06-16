@@ -108,6 +108,47 @@ export type RecentSessionSummary = {
   }>;
 };
 
+export type SessionListItem = {
+  sessionId: string;
+  visitorId: string;
+  campaignLabel: string;
+  campaignSlug: string | null;
+  startedAt: string;
+  lastEventAt: string | null;
+  location: string;
+  sourceHint: string | null;
+  entryPath: string | null;
+  eventCount: number;
+  viewedProjects: string[];
+  keyActions: string[];
+};
+
+export type PaginatedSessions = {
+  items: SessionListItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type SessionDetail = SessionListItem & {
+  referrer: string | null;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  paths: string[];
+  events: Array<{
+    id: string;
+    eventType: EventType;
+    label: string;
+    projectTitle: string | null;
+    path: string;
+    targetUrl: string | null;
+    sectionId: string | null;
+    durationMs: number | null;
+    occurredAt: string;
+  }>;
+};
+
 export type AnalyticsDashboardData = {
   kpis: {
     totalSessions: number;
@@ -332,6 +373,63 @@ export function summarizeRecentSessions(
     });
 }
 
+export function summarizeSessionList(
+  events: AnalyticsEvent[],
+  sessions: AnalyticsSession[],
+  campaigns: CampaignFact[],
+  projects: ProjectFact[],
+  pagination: { page: number; pageSize: number }
+): PaginatedSessions {
+  const page = Math.max(1, Math.floor(pagination.page) || 1);
+  const pageSize = clampPageSize(pagination.pageSize);
+  const orderedSessions = sessions.slice().sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt));
+  const total = orderedSessions.length;
+  const totalPages = total > 0 ? Math.ceil(total / pageSize) : 0;
+  const offset = (page - 1) * pageSize;
+
+  return {
+    items: orderedSessions
+      .slice(offset, offset + pageSize)
+      .map((session) => summarizeSessionListItem(session, events, campaigns, projects)),
+    page,
+    pageSize,
+    total,
+    totalPages
+  };
+}
+
+export function summarizeSessionDetail(
+  session: AnalyticsSession,
+  events: AnalyticsEvent[],
+  campaigns: CampaignFact[],
+  projects: ProjectFact[]
+): SessionDetail {
+  const orderedEvents = getOrderedSessionEvents(events, session.id);
+  const listItem = summarizeSessionListItem(session, orderedEvents, campaigns, projects);
+  const projectFacts = new Map(projects.map((project) => [project.id, project]));
+  const lastEventAt = orderedEvents.at(-1)?.occurredAt ?? null;
+  const durationEnd = session.endedAt ?? lastEventAt;
+
+  return {
+    ...listItem,
+    referrer: session.referrer,
+    endedAt: session.endedAt,
+    durationSeconds: durationEnd ? Math.max(0, Math.round((Date.parse(durationEnd) - Date.parse(session.startedAt)) / 1000)) : null,
+    paths: Array.from(new Set(orderedEvents.map((event) => event.path))),
+    events: orderedEvents.map((event) => ({
+      id: event.id,
+      eventType: event.eventType,
+      label: formatEventType(event.eventType),
+      projectTitle: event.projectId ? projectFacts.get(event.projectId)?.title ?? "已删除项目" : null,
+      path: event.path,
+      targetUrl: event.targetUrl,
+      sectionId: event.sectionId,
+      durationMs: event.durationMs,
+      occurredAt: event.occurredAt
+    }))
+  };
+}
+
 export async function getAnalyticsDashboard(): Promise<AnalyticsDashboardData> {
   const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
   const supabase = createSupabaseAdminClient();
@@ -378,6 +476,168 @@ export async function getAnalyticsDashboard(): Promise<AnalyticsDashboardData> {
     prdSectionInterest: summarizePrdSectionInterest(events),
     recentSessions: summarizeRecentSessions(events, sessions, campaigns, projects)
   };
+}
+
+export async function getPaginatedSessions({
+  page,
+  pageSize = 12
+}: {
+  page: number;
+  pageSize?: number;
+}): Promise<PaginatedSessions> {
+  const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
+  const supabase = createSupabaseAdminClient();
+  const normalizedPage = Math.max(1, Math.floor(page) || 1);
+  const normalizedPageSize = clampPageSize(pageSize);
+  const from = (normalizedPage - 1) * normalizedPageSize;
+  const to = from + normalizedPageSize - 1;
+
+  const [sessionsResult, campaignsResult, projectsResult] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("id,visitor_id,campaign_id,referrer,geo_country,geo_region,geo_city,source_hint,started_at,ended_at", {
+        count: "exact"
+      })
+      .order("started_at", { ascending: false })
+      .range(from, to),
+    supabase.from("campaigns").select("id,company,role,tags,slug").order("created_at", { ascending: false }),
+    supabase.from("projects").select("id,title,slug").order("sort_order", { ascending: true })
+  ]);
+
+  if (sessionsResult.error) throw sessionsResult.error;
+  if (campaignsResult.error) throw campaignsResult.error;
+  if (projectsResult.error) throw projectsResult.error;
+
+  const sessions = (sessionsResult.data ?? []).map(toAnalyticsSession);
+  const sessionIds = sessions.map((session) => session.id);
+  let events: AnalyticsEvent[] = [];
+
+  if (sessionIds.length > 0) {
+    const eventsResult = await supabase
+      .from("events")
+      .select(
+        "id,session_id,visitor_id,campaign_id,event_type,project_id,path,target_url,section_id,duration_ms,scroll_depth,metadata,occurred_at"
+      )
+      .in("session_id", sessionIds)
+      .order("occurred_at", { ascending: true });
+
+    if (eventsResult.error) throw eventsResult.error;
+    events = (eventsResult.data ?? []).map(toAnalyticsEvent);
+  }
+
+  const campaigns = (campaignsResult.data ?? []).map(toCampaignFact);
+  const projects = (projectsResult.data ?? []).map(toProjectFact);
+  const total = sessionsResult.count ?? sessions.length;
+  const summary = summarizeSessionList(events, sessions, campaigns, projects, {
+    page: normalizedPage,
+    pageSize: normalizedPageSize
+  });
+
+  return {
+    ...summary,
+    total,
+    totalPages: total > 0 ? Math.ceil(total / normalizedPageSize) : 0
+  };
+}
+
+export async function getSessionDetail(sessionId: string): Promise<SessionDetail | null> {
+  const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
+  const supabase = createSupabaseAdminClient();
+
+  const [sessionResult, eventsResult, campaignsResult, projectsResult] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("id,visitor_id,campaign_id,referrer,geo_country,geo_region,geo_city,source_hint,started_at,ended_at")
+      .eq("id", sessionId)
+      .maybeSingle(),
+    supabase
+      .from("events")
+      .select(
+        "id,session_id,visitor_id,campaign_id,event_type,project_id,path,target_url,section_id,duration_ms,scroll_depth,metadata,occurred_at"
+      )
+      .eq("session_id", sessionId)
+      .order("occurred_at", { ascending: true }),
+    supabase.from("campaigns").select("id,company,role,tags,slug").order("created_at", { ascending: false }),
+    supabase.from("projects").select("id,title,slug").order("sort_order", { ascending: true })
+  ]);
+
+  if (sessionResult.error) throw sessionResult.error;
+  if (eventsResult.error) throw eventsResult.error;
+  if (campaignsResult.error) throw campaignsResult.error;
+  if (projectsResult.error) throw projectsResult.error;
+  if (!sessionResult.data) return null;
+
+  return summarizeSessionDetail(
+    toAnalyticsSession(sessionResult.data),
+    (eventsResult.data ?? []).map(toAnalyticsEvent),
+    (campaignsResult.data ?? []).map(toCampaignFact),
+    (projectsResult.data ?? []).map(toProjectFact)
+  );
+}
+
+function summarizeSessionListItem(
+  session: AnalyticsSession,
+  events: AnalyticsEvent[],
+  campaigns: CampaignFact[],
+  projects: ProjectFact[]
+): SessionListItem {
+  const campaignFacts = new Map(campaigns.map((campaign) => [campaign.id, campaign]));
+  const campaign = session.campaignId ? campaignFacts.get(session.campaignId) : null;
+  const sessionEvents = getOrderedSessionEvents(events, session.id);
+
+  return {
+    sessionId: session.id,
+    visitorId: session.visitorId,
+    campaignLabel: campaign ? `${campaign.company} / ${campaign.role}` : "直接访问",
+    campaignSlug: campaign?.slug ?? null,
+    startedAt: session.startedAt,
+    lastEventAt: sessionEvents.at(-1)?.occurredAt ?? null,
+    location: formatLocation(session),
+    sourceHint: session.sourceHint,
+    entryPath: sessionEvents[0]?.path ?? null,
+    eventCount: sessionEvents.length,
+    viewedProjects: summarizeViewedProjects(sessionEvents, projects),
+    keyActions: summarizeKeyActions(sessionEvents)
+  };
+}
+
+function getOrderedSessionEvents(events: AnalyticsEvent[], sessionId: string) {
+  return events
+    .filter((event) => event.sessionId === sessionId)
+    .slice()
+    .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt));
+}
+
+function summarizeViewedProjects(events: AnalyticsEvent[], projects: ProjectFact[]) {
+  const projectFacts = new Map(projects.map((project) => [project.id, project]));
+  const titles: string[] = [];
+  const seen = new Set<string>();
+
+  for (const event of events) {
+    if (!event.projectId || seen.has(event.projectId)) continue;
+    seen.add(event.projectId);
+    titles.push(projectFacts.get(event.projectId)?.title ?? "已删除项目");
+  }
+
+  return Array.from(new Set(titles));
+}
+
+function summarizeKeyActions(events: AnalyticsEvent[]) {
+  const actions: string[] = [];
+
+  for (const event of events) {
+    const action = keyActionForEvent(event.eventType);
+    if (action && !actions.includes(action)) actions.push(action);
+  }
+
+  return actions;
+}
+
+function keyActionForEvent(eventType: EventType) {
+  if (isProjectDetailEvent(eventType)) return "进入项目详情";
+  if (isPrdReadEvent(eventType)) return "阅读 PRD";
+  if (eventType === "demo_click" || eventType === "external_link_click") return "点击 Demo";
+  return null;
 }
 
 function getProjectInterestSummary(
@@ -512,4 +772,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function roundSeconds(milliseconds: number) {
   return Math.round((milliseconds / 1000) * 10) / 10;
+}
+
+function clampPageSize(pageSize: number) {
+  return Math.min(50, Math.max(1, Math.floor(pageSize) || 12));
+}
+
+function formatEventType(eventType: EventType) {
+  const labels: Record<EventType, string> = {
+    page_view: "页面",
+    session_start: "开始",
+    session_end: "结束",
+    project_impression: "曝光",
+    project_expand: "展开",
+    project_detail_open: "详情",
+    project_detail_view: "详情",
+    prd_summary_expand: "PRD 摘要",
+    prd_open: "PRD 打开",
+    prd_read: "PRD 阅读",
+    prd_full_view: "PRD 全文",
+    prd_section_view: "PRD 小节",
+    project_dwell: "停留",
+    section_dwell: "停留",
+    demo_click: "Demo",
+    external_link_click: "外链",
+    resume_snapshot_view: "经历"
+  };
+
+  return labels[eventType];
 }

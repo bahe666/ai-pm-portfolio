@@ -4,6 +4,8 @@ import {
   summarizeFunnel,
   summarizeProjectInterest,
   summarizeRecentSessions,
+  summarizeSessionDetail,
+  summarizeSessionList,
   type AnalyticsEvent,
   type AnalyticsSession,
   type CampaignFact,
@@ -232,6 +234,135 @@ describe("summarizeRecentSessions", () => {
       "session-mid",
       "session-old"
     ]);
+  });
+});
+
+describe("session summaries", () => {
+  it("paginates session list and summarizes key actions", () => {
+    const sessions = [
+      session("session-new", "campaign-a", "2026-06-11T12:00:00.000Z"),
+      session("session-old", null, "2026-06-11T08:00:00.000Z")
+    ] satisfies AnalyticsSession[];
+    const campaigns = [
+      { id: "campaign-a", company: "Acme", role: "AI PM", tags: ["Agent"], slug: "acme-ai-pm" }
+    ] satisfies CampaignFact[];
+    const projects = [{ id: "project-a", title: "Agent Demo", slug: "agent-demo" }] satisfies ProjectFact[];
+    const events = [
+      event("page_view", {
+        id: "event-1",
+        sessionId: "session-new",
+        campaignId: "campaign-a",
+        path: "/v/acme-ai-pm",
+        occurredAt: "2026-06-11T12:00:01.000Z"
+      }),
+      event("project_detail_open", {
+        id: "event-2",
+        sessionId: "session-new",
+        campaignId: "campaign-a",
+        projectId: "project-a",
+        occurredAt: "2026-06-11T12:00:02.000Z"
+      }),
+      event("demo_click", {
+        id: "event-3",
+        sessionId: "session-new",
+        campaignId: "campaign-a",
+        projectId: "project-a",
+        occurredAt: "2026-06-11T12:00:03.000Z"
+      })
+    ] satisfies AnalyticsEvent[];
+
+    expect(summarizeSessionList(events, sessions, campaigns, projects, { page: 1, pageSize: 1 })).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+      items: [
+        {
+          sessionId: "session-new",
+          campaignLabel: "Acme / AI PM",
+          campaignSlug: "acme-ai-pm",
+          entryPath: "/v/acme-ai-pm",
+          eventCount: 3,
+          viewedProjects: ["Agent Demo"],
+          keyActions: ["进入项目详情", "点击 Demo"]
+        }
+      ]
+    });
+  });
+
+  it("summarizes session detail with ordered events, unique paths, and duration", () => {
+    const detailSession = {
+      ...session("session-detail", null, "2026-06-11T12:00:00.000Z"),
+      endedAt: null,
+      referrer: "https://example.com/jobs",
+      sourceHint: "linkedin"
+    } satisfies AnalyticsSession;
+    const projects = [{ id: "project-a", title: "Agent Demo", slug: "agent-demo" }] satisfies ProjectFact[];
+    const events = [
+      event("demo_click", {
+        id: "event-late",
+        sessionId: "session-detail",
+        projectId: "project-a",
+        path: "/projects/agent-demo",
+        targetUrl: "https://demo.example.com",
+        occurredAt: "2026-06-11T12:04:00.000Z"
+      }),
+      event("page_view", {
+        id: "event-early",
+        sessionId: "session-detail",
+        path: "/",
+        occurredAt: "2026-06-11T12:01:00.000Z"
+      }),
+      event("prd_read", {
+        id: "event-mid",
+        sessionId: "session-detail",
+        projectId: "missing-project",
+        path: "/projects/agent-demo",
+        sectionId: "problem",
+        durationMs: 30_000,
+        occurredAt: "2026-06-11T12:03:00.000Z"
+      })
+    ] satisfies AnalyticsEvent[];
+
+    expect(summarizeSessionDetail(detailSession, events, [], projects)).toMatchObject({
+      sessionId: "session-detail",
+      campaignLabel: "直接访问",
+      campaignSlug: null,
+      referrer: "https://example.com/jobs",
+      sourceHint: "linkedin",
+      entryPath: "/",
+      lastEventAt: "2026-06-11T12:04:00.000Z",
+      durationSeconds: 240,
+      paths: ["/", "/projects/agent-demo"],
+      viewedProjects: ["已删除项目", "Agent Demo"],
+      keyActions: ["阅读 PRD", "点击 Demo"],
+      events: [
+        {
+          id: "event-early",
+          eventType: "page_view",
+          label: "页面",
+          path: "/",
+          projectTitle: null
+        },
+        {
+          id: "event-mid",
+          eventType: "prd_read",
+          label: "PRD 阅读",
+          path: "/projects/agent-demo",
+          projectTitle: "已删除项目",
+          sectionId: "problem",
+          durationMs: 30000
+        },
+        {
+          id: "event-late",
+          eventType: "demo_click",
+          label: "Demo",
+          path: "/projects/agent-demo",
+          projectTitle: "Agent Demo",
+          targetUrl: "https://demo.example.com"
+        }
+      ]
+    });
   });
 });
 

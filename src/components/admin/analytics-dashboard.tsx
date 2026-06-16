@@ -1,12 +1,14 @@
+import Link from "next/link";
 import { Activity, BarChart3, Clock3, MousePointerClick, Route, Tags } from "lucide-react";
-import type { AnalyticsDashboardData, FunnelStep } from "@/lib/data/analytics";
-import type { EventType } from "@/lib/types";
+import type { AnalyticsDashboardData, FunnelStep, PaginatedSessions } from "@/lib/data/analytics";
 
 export function AnalyticsDashboard({
   data,
+  sessions,
   errorMessage
 }: {
   data: AnalyticsDashboardData;
+  sessions: PaginatedSessions;
   errorMessage?: string;
 }) {
   const maxFunnelSessions = Math.max(...data.funnel.map((step) => step.sessions), 1);
@@ -191,41 +193,60 @@ export function AnalyticsDashboard({
         <div className="admin-section-heading">
           <div>
             <h2 id="recent-sessions-title">最近会话路径</h2>
-            <p>最近访问、来源、地点和事件序列。</p>
+            <p>分页查看最近访问、入口路径、项目兴趣和关键动作。</p>
           </div>
           <MousePointerClick aria-hidden="true" size={22} />
         </div>
-        <div className="analytics-session-list">
-          {data.recentSessions.map((session) => (
-            <article className="analytics-session" key={session.sessionId}>
-              <div className="analytics-session__meta">
-                <div>
-                  <strong>{session.campaignLabel}</strong>
-                  <span>访客 {shortId(session.visitorId)}</span>
-                  <span>{formatDateTime(session.startedAt)}</span>
-                </div>
-                <div>
-                  <span>{session.location}</span>
-                  {session.sourceHint ? <span>{session.sourceHint}</span> : null}
-                </div>
-              </div>
-              <div className="analytics-path-list" aria-label="访问路径">
-                {session.paths.length > 0 ? session.paths.map((path) => <span key={path}>{path}</span>) : <span>暂无路径</span>}
-              </div>
-              <ol className="analytics-event-list">
-                {session.events.map((event) => (
-                  <li key={`${session.sessionId}-${event.eventType}-${event.occurredAt}-${event.path}`}>
-                    <span>{formatEventType(event.eventType)}</span>
-                    <strong>{event.projectTitle ?? event.targetUrl ?? event.path}</strong>
-                    <time dateTime={event.occurredAt}>{formatTime(event.occurredAt)}</time>
-                  </li>
-                ))}
-                {session.events.length === 0 ? <li>暂无事件</li> : null}
-              </ol>
-            </article>
-          ))}
-          {data.recentSessions.length === 0 ? <EmptyState label="暂无会话数据。" /> : null}
-        </div>
+        {sessions.items.length > 0 ? (
+          <>
+            <div className="admin-table-wrap">
+              <table className="admin-table analytics-table analytics-session-table">
+                <thead>
+                  <tr>
+                    <th>来源</th>
+                    <th>访客 / 时间</th>
+                    <th>地点</th>
+                    <th>入口</th>
+                    <th>事件</th>
+                    <th>项目</th>
+                    <th>关键动作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.items.map((session) => (
+                    <tr key={session.sessionId}>
+                      <td>
+                        <Link className="analytics-session-link" href={`/admin/analytics/sessions/${session.sessionId}`}>
+                          <strong>{session.campaignLabel}</strong>
+                          <small>{session.campaignSlug ? `/${session.campaignSlug}` : "直接访问"}</small>
+                        </Link>
+                      </td>
+                      <td>
+                        <strong>访客 {shortId(session.visitorId)}</strong>
+                        <small>{formatDateTime(session.startedAt)}</small>
+                      </td>
+                      <td>
+                        <strong>{session.location}</strong>
+                        {session.sourceHint ? <small>{session.sourceHint}</small> : null}
+                      </td>
+                      <td>{session.entryPath ?? "无"}</td>
+                      <NumberCell value={session.eventCount} />
+                      <td>
+                        <ChipList items={session.viewedProjects} emptyLabel="暂无项目" />
+                      </td>
+                      <td>
+                        <ChipList items={session.keyActions} emptyLabel="暂无动作" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination sessions={sessions} />
+          </>
+        ) : (
+          <EmptyState label="暂无可分析的会话。" />
+        )}
       </section>
     </div>
   );
@@ -256,6 +277,33 @@ function EmptyState({ label }: { label: string }) {
   return <p className="analytics-empty">{label}</p>;
 }
 
+function ChipList({ items, emptyLabel }: { items: string[]; emptyLabel: string }) {
+  return (
+    <div className="analytics-chip-list">
+      {items.length > 0 ? items.map((item) => <span key={item}>{item}</span>) : <span>{emptyLabel}</span>}
+    </div>
+  );
+}
+
+function Pagination({ sessions }: { sessions: PaginatedSessions }) {
+  const currentStart = sessions.total === 0 ? 0 : (sessions.page - 1) * sessions.pageSize + 1;
+  const currentEnd = Math.min(sessions.total, sessions.page * sessions.pageSize);
+  const hasPrevious = sessions.page > 1;
+  const hasNext = sessions.totalPages > 0 && sessions.page < sessions.totalPages;
+
+  return (
+    <nav className="analytics-pagination" aria-label="会话分页">
+      <span>
+        第 {sessions.page} / {Math.max(sessions.totalPages, 1)} 页，显示 {currentStart}-{currentEnd} / {sessions.total}
+      </span>
+      <div>
+        {hasPrevious ? <Link href={`/admin/analytics?page=${sessions.page - 1}`}>上一页</Link> : <span aria-disabled="true">上一页</span>}
+        {hasNext ? <Link href={`/admin/analytics?page=${sessions.page + 1}`}>下一页</Link> : <span aria-disabled="true">下一页</span>}
+      </div>
+    </nav>
+  );
+}
+
 function FunnelBar({ max, step }: { max: number; step: FunnelStep }) {
   const width = `${Math.max((step.sessions / max) * 100, step.sessions > 0 ? 4 : 0)}%`;
 
@@ -284,37 +332,6 @@ function formatDateTime(value: string | null) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(value));
-}
-
-function formatEventType(eventType: EventType) {
-  const labels: Record<EventType, string> = {
-    page_view: "页面",
-    session_start: "开始",
-    session_end: "结束",
-    project_impression: "曝光",
-    project_expand: "展开",
-    project_detail_open: "详情",
-    project_detail_view: "详情",
-    prd_summary_expand: "PRD 摘要",
-    prd_open: "PRD 打开",
-    prd_read: "PRD 阅读",
-    prd_full_view: "PRD 全文",
-    prd_section_view: "PRD 小节",
-    project_dwell: "停留",
-    section_dwell: "停留",
-    demo_click: "Demo",
-    external_link_click: "外链",
-    resume_snapshot_view: "经历"
-  };
-
-  return labels[eventType];
 }
 
 function shortId(id: string) {
