@@ -131,7 +131,8 @@ describe("POST /api/events", () => {
     );
 
     await expect(response.json()).resolves.toEqual({ ok: true });
-    expect(supabase.sessionsUpsert.mock.calls[0]?.[0]).not.toHaveProperty("ip_address");
+    const sessionPayload = supabase.sessionsUpsert.mock.calls[0][0];
+    expect(sessionPayload).not.toHaveProperty("ip_address");
     expect(supabase.sessionsUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         geo_country: "US",
@@ -155,12 +156,12 @@ function createEventRequest(body: unknown, headers?: HeadersInit): NextRequest {
 }
 
 function createSupabaseMock() {
-  const visitorsUpsert = vi.fn(() => ({
+  const visitorsUpsert = vi.fn((_payload: Record<string, unknown>, _options: Record<string, unknown>) => ({
     select: vi.fn(() => ({
       single: vi.fn(async () => ({ data: { id: "visitor-row-1" }, error: null }))
     }))
   }));
-  const sessionsUpsert = vi.fn(() => ({
+  const sessionsUpsert = vi.fn((_payload: Record<string, unknown>, _options: Record<string, unknown>) => ({
     select: vi.fn(() => ({
       single: vi.fn(async () => ({ data: { id: "session-row-1" }, error: null }))
     }))
@@ -181,7 +182,7 @@ function createSupabaseMock() {
         }
         throw new Error(`Unexpected table: ${table}`);
       })
-    } as ReturnType<typeof createSupabaseAdminClient>,
+    } as unknown as ReturnType<typeof createSupabaseAdminClient>,
     sessionsUpsert
   };
 }
