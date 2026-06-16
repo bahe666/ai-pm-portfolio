@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProjectGrid } from "@/components/public/project-grid";
+import { ResumeEvidence } from "@/components/public/resume-evidence";
 import { SiteFooter } from "@/components/public/site-footer";
 import { getPublicProfile, getPublishedProjects } from "@/lib/data/public";
 
@@ -66,17 +67,7 @@ export default async function HomePage() {
 
       <ProjectGrid projects={projects} />
 
-      <section className="resume-snapshot" aria-labelledby="resume-title">
-        <div className="section-heading">
-          <p>Resume Notes</p>
-          <h2 id="resume-title">轻量经历摘要</h2>
-        </div>
-        <ul>
-          {profile.resumeSnapshot.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </section>
+      <ResumeEvidence profile={profile} />
 
       <SiteFooter />
     </main>

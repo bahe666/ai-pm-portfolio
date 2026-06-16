@@ -1,22 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { fixtureProjects } from "@/lib/fixtures";
-import { summarizeMarkdown } from "@/lib/markdown";
 import { ProjectCard } from "./project-card";
 
 describe("ProjectCard", () => {
-  it("renders project evidence and links", () => {
+  it("renders a scan-friendly project experience row and links", () => {
     const project = fixtureProjects[0];
 
-    render(<ProjectCard project={project} />);
+    render(<ProjectCard index={0} project={project} />);
 
-    expect(screen.getByRole("img", { name: /原型截图|首页预览/ })).toHaveAttribute("src", project.coverImageUrl);
+    expect(screen.getByText("01")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: project.title })).toBeInTheDocument();
     expect(screen.getByText(project.summary)).toBeInTheDocument();
+    expect(screen.getByText("我的角色")).toBeInTheDocument();
+    expect(screen.getByText("AI 使用方式")).toBeInTheDocument();
+    expect(screen.getByText("关键判断")).toBeInTheDocument();
+    expect(screen.getByText("项目思考")).toBeInTheDocument();
     expect(screen.getByText(project.contribution)).toBeInTheDocument();
     expect(screen.getByText(project.aiUsage)).toBeInTheDocument();
     expect(screen.getByText(project.decisions)).toBeInTheDocument();
-    expect(screen.getByText(summarizeMarkdown(project.prdMarkdown, 120))).toBeInTheDocument();
+    expect(screen.getByText(project.reflection)).toBeInTheDocument();
 
     expect(screen.getByRole("link", { name: "阅读详情" })).toHaveAttribute(
       "href",

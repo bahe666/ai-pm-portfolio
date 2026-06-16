@@ -7,9 +7,12 @@ test("public homepage shows identity, projects and footer data note", async ({ p
   await expect(page.getByText(/3 分钟认识我/)).toBeVisible();
   await expect(page.getByText(/这里整理了我上一段实习中的部分原型 Demo、PRD 和项目思考/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "精选项目预览" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "项目经历" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "轻量经历摘要" })).toBeVisible();
   await expect(page.getByRole("heading", { exact: true, name: "Agent 协作原型" })).toBeVisible();
   await expect(page.getByText(/匿名访问数据/)).toBeVisible();
 
+  await expect(page.getByText("项目证据")).toHaveCount(0);
   await expect(page.getByText("当前身份")).toHaveCount(0);
   await expect(page.getByText("求职方向")).toHaveCount(0);
   await expect(page.getByText("作品集内容")).toHaveCount(0);

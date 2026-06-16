@@ -110,9 +110,9 @@ select {
 
 .hero__intro,
 .project-detail__header p,
-.project-card__summary,
 .section-heading span,
-.project-evidence dd,
+.project-experience__main p,
+.project-experience__facts dd,
 .detail-grid p,
 .detail-placeholder p {
   color: var(--muted);
@@ -214,7 +214,7 @@ select {
 
 .capability-section,
 .project-section,
-.resume-snapshot,
+.resume-evidence,
 .prd-section {
   margin-top: 64px;
 }
@@ -262,37 +262,40 @@ select {
   font-size: 1.05rem;
 }
 
-.project-grid {
+.project-experience-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: 14px;
 }
 
-.project-card {
-  display: flex;
+.project-experience {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) minmax(150px, 0.22fr);
+  gap: 18px;
+  align-items: start;
   min-width: 0;
-  flex-direction: column;
   border: 1px solid var(--line);
   background: var(--surface);
+  padding: 18px;
 }
 
-.project-card__cover {
+.project-experience__index {
   display: grid;
-  aspect-ratio: 16 / 9;
-  min-height: 210px;
-  overflow: hidden;
-  border-bottom: 1px solid var(--line);
-  background: var(--paper-2);
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  color: var(--accent);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.84rem;
+  font-weight: 800;
 }
 
-.project-card__cover img,
 .project-detail__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.project-card__placeholder,
 .detail-placeholder {
   display: grid;
   align-content: end;
@@ -305,7 +308,6 @@ select {
     var(--paper-2);
 }
 
-.project-card__placeholder span,
 .detail-placeholder span {
   width: fit-content;
   background: var(--ink);
@@ -315,49 +317,56 @@ select {
   padding: 5px 8px;
 }
 
-.project-card__placeholder strong,
 .detail-placeholder strong {
   max-width: 16ch;
   font-size: 1.45rem;
   line-height: 1.05;
 }
 
-.project-card__body {
-  display: flex;
-  flex: 1;
+.project-experience__main {
   min-width: 0;
-  flex-direction: column;
-  padding: 20px;
 }
 
-.project-card h3 {
-  margin-top: 16px;
-  font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+.project-experience__main h3 {
+  margin: 14px 0 10px;
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  line-height: 1.12;
 }
 
-.project-card__summary {
-  margin: 12px 0 0;
+.project-experience__main p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
 }
 
-.project-evidence {
+.project-experience__facts {
   display: grid;
-  gap: 14px;
-  margin: 20px 0 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0 0;
 }
 
-.project-evidence div {
+.project-experience__facts div {
   border-top: 1px solid rgba(36, 26, 18, 0.25);
-  padding-top: 12px;
+  padding-top: 10px;
 }
 
-.project-evidence dt {
-  margin-bottom: 6px;
+.project-experience__facts dt {
+  margin-bottom: 5px;
   color: var(--ink);
   font-weight: 700;
 }
 
-.project-evidence dd {
+.project-experience__facts dd {
   margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.project-experience__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .action-row {
@@ -399,28 +408,38 @@ select {
   color: var(--surface);
 }
 
-.resume-snapshot {
+.resume-evidence {
   border-top: 1px solid var(--line);
   padding-top: 28px;
 }
 
-.resume-snapshot ul {
+.resume-evidence__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
   border: 1px solid var(--line);
   background: var(--line);
 }
 
-.resume-snapshot li {
+.resume-evidence__item {
   min-width: 0;
   background: var(--surface);
-  color: var(--muted);
-  line-height: 1.72;
   padding: 18px;
+}
+
+.resume-evidence__item span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--accent);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.resume-evidence__item strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.55;
 }
 
 .site-footer {
@@ -1667,7 +1686,6 @@ select {
   }
 
   .hero,
-  .project-grid,
   .detail-grid,
   .prd-layout {
     grid-template-columns: 1fr;
@@ -1686,7 +1704,20 @@ select {
   }
 
   .capability-steps,
-  .resume-snapshot ul {
+  .resume-evidence__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-experience {
+    grid-template-columns: 1fr;
+  }
+
+  .project-experience__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .project-experience__facts {
     grid-template-columns: 1fr;
   }
 
@@ -1774,7 +1805,6 @@ select {
     font-size: 1.35rem;
   }
 
-  .project-card__body,
   .detail-grid article,
   .prd-content {
     padding: 16px;
